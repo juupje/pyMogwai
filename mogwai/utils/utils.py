@@ -7,7 +7,7 @@ def get_dict_indexer(keys:List[str]|str, default:Any=None):
                 for key in keys:
                     x = x[key]
                 return x
-            except KeyError:
+            except:
                 return default
         return indexer
     else:

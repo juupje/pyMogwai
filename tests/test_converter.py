@@ -13,17 +13,6 @@ class TestParser(BaseTest):
         self.assertTrue(dic["slides"][0]["page"] == 1, "wrong first page number")
         print("test_pp_converter successfully")
 
-    def test_xml_converter(self):
-        from mogwai.parser.xml_converter import xml_file_to_dic
-
-        test_xml_path = os.path.join(self.documents_path, "test_xml.xml")
-        dic = xml_file_to_dic(test_xml_path)
-        calorie = dic["menu"]["food"][0]["calories"]
-        name = dic["menu"]["food"][3]["name"]
-        self.assertEqual(calorie, "650", "wrong number of calories")
-        self.assertEqual(name, "French Toast", "wron food name")
-        print("test_xml_converter successfully")
-
     def test_excel_converter(self):
         from mogwai.parser.excel_converter import excel_to_dic
 

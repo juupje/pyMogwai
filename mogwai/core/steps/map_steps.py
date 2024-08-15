@@ -152,7 +152,7 @@ class Select(MapStep):
         flags = kwargs.pop('flags', 0)
         super().__init__(traversal=traversal, flags=flags|Select.SUPPORTS_MULTIPLE_BY, **kwargs)
         self.keys = keys
-        self.by = by or []
+        self.by = [by] if by else []
 
     def build(self):
         if len(self.by) > 0:
@@ -220,6 +220,10 @@ class Order(MapStep):
         self.by = by
         logger.debug(f"Order is sorting in {('ascending' if self.asc else 'descending')} order")
 
+    def build(self):
+        if isinstance(self.by, AnonymousTraversal):
+            self.by._build(self.traversal)
+
     def __call__(self, traversers: Iterable[Traverser] | Iterable[Any]) -> Iterable[Traverser] | Iterable[Any]:
         def extract_first_item(x):
             if len(x)!=1:
@@ -242,7 +246,7 @@ class Order(MapStep):
                 elif isinstance(self.by, AnonymousTraversal):
                     for t in traversers:
                         travs.append(t)
-                        keys.append(extract_first_item(ensure_is_list(self.by(self.traversal, [t.copy()]))))
+                        keys.append(extract_first_item(ensure_is_list(self.by([t.copy()]))))
             else:
                 traversers = ensure_is_list(traversers)
                 if(len(traversers)==0): return traversers
@@ -263,7 +267,7 @@ class Order(MapStep):
                     indexer = get_dict_indexer(self.by,None)
                     sortmap = {t:x for t in traversers if (x:=indexer(self.traversal._get_element(t))) is not None}
                 elif isinstance(self.by, AnonymousTraversal):
-                    sortmap = {t:extract_first_item(ensure_is_list(self.by(self.traversal, [t.copy()]))) for t in traversers}
+                    sortmap = {t:extract_first_item(ensure_is_list(self.by([t.copy()]))) for t in traversers}
             else:
                 traversers = ensure_is_list(traversers)
                 if(len(traversers)==0): return traversers

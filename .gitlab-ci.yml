@@ -34,10 +34,7 @@ before_script:
   - pip install networkx==3.3
   - pip install pydot
   - pip install pygraphviz
-  - pip install xmltodict
   - pip install green
-  - pip install gremlinpython
-  - pip install async_timeout
   #- pip install numpy
 
 stages:          # List of stages for jobs, and their order of execution

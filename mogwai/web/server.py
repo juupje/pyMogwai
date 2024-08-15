@@ -1,13 +1,10 @@
-'''
-Created on 2024-08-15
-
-@author: wf
-'''
 """
 Created on 2024-08-15
 
 @author: wf
 """
+from ngwidgets.login import Login
+from ngwidgets.users import Users
 from ngwidgets.input_webserver import InputWebserver, InputWebSolution
 from ngwidgets.webserver import WebserverConfig
 from mogwai.version import Version
@@ -18,6 +15,7 @@ from mogwai.parser.excel_converter import EXCELGraph
 import mogwai.core.traversal as Trav
 import os
 import tempfile
+from starlette.responses import RedirectResponse
 
 
 class MogwaiWebServer(InputWebserver):
@@ -40,7 +38,8 @@ class MogwaiWebServer(InputWebserver):
     def __init__(self):
         """Constructs all the necessary attributes for the WebServer object."""
         InputWebserver.__init__(self, config=MogwaiWebServer.get_config())
-        self.pdf_url = "https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf"
+        users = Users("~/.solutions/mogwai")
+        self.login = Login(self, users)
 
         @ui.page("/")
         async def home(client: Client):
@@ -48,15 +47,31 @@ class MogwaiWebServer(InputWebserver):
 
         @ui.page("/parse")
         async def parse_file(client: Client):
+            if not self.login.authenticated():
+                return RedirectResponse("/login")
             return await self.page(client, MogwaiSolution.parse_file)
 
         @ui.page("/query")
         async def query_graph(client: Client):
             return await self.page(client, MogwaiSolution.query_graph)
 
-        @ui.page("/pdfviewer")
-        async def show_pdf_viewer(client: Client):
-            return await self.page(client, MogwaiSolution.show_pdf_viewer)
+        @ui.page("/login")
+        async def login(client: Client):
+            return await self.page(client, MogwaiSolution.login_ui)
+
+        @ui.page("/logout")
+        async def logout(client: Client) -> RedirectResponse:
+            if self.login.authenticated():
+                await self.login.logout()
+            return RedirectResponse("/")
+
+    def authenticated(self) -> bool:
+        """
+        Check if the user is authenticated.
+        Returns:
+            True if the user is authenticated, False otherwise.
+        """
+        return self.login.authenticated()
 
 class MogwaiSolution(InputWebSolution):
     """
@@ -74,16 +89,27 @@ class MogwaiSolution(InputWebSolution):
         super().__init__(webserver, client)
         self.graph = None
 
+    def setup_menu(self, detailed: bool = True):
+        """
+        setup the menu
+        """
+        super().setup_menu(detailed=detailed)
+        ui.button(icon="menu", on_click=lambda: self.header.toggle())
+        with self.header:
+            if self.webserver.authenticated():
+                self.link_button("logout", "/logout", "logout", new_tab=False)
+            else:
+                self.link_button("login", "/login", "login", new_tab=False)
+
+    async def login_ui(self):
+        """
+        login ui
+        """
+        await self.webserver.login.login(self)
+
     async def home(self):
         """Provide the main content page"""
-        def setup_home():
-            ui.label("Mogwai Demo").classes('text-h3')
-            with ui.column():
-                ui.link("Parse File", "/parse")
-                ui.link("Query Graph", "/query")
-                ui.link("PDF Viewer", "/pdfviewer")
-
-        await self.setup_content_div(setup_home)
+        await self.query_graph()
 
     async def parse_file(self):
         """File parsing page"""
@@ -105,16 +131,6 @@ class MogwaiSolution(InputWebSolution):
                 ui.label("No graph loaded. Please parse a file first.")
 
         await self.setup_content_div(setup_query)
-
-    async def show_pdf_viewer(self):
-        """PDF viewer page"""
-        def setup_pdf_viewer():
-            ui.label("PDF Viewer").classes('text-h4')
-            from ngwidgets.pdfviewer import pdfviewer
-            self.pdf_viewer = pdfviewer(debug=self.args.debug).classes("w-full h-96")
-            ui.button("Load PDF", on_click=self.load_pdf)
-
-        await self.setup_content_div(setup_pdf_viewer)
 
     def handle_upload(self, e):
         """Handle file upload"""
@@ -151,7 +167,3 @@ class MogwaiSolution(InputWebSolution):
             ui.notify(f"Query result: {res}")
         except Exception as e:
             ui.notify(f"Error executing query: {str(e)}", type="negative")
-
-    async def load_pdf(self):
-        """Load PDF into viewer"""
-        self.pdf_viewer.load_pdf(self.webserver.pdf_url)

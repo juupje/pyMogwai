@@ -17,12 +17,12 @@ maintainers = [
 readme = "README.md"
 license= "Apache-2.0"
 dependencies = [
-	# https://github.com/py-pdf/pypdf
-	'pypdf>=4.2.0',
+  # https://github.com/py-pdf/pypdf
+  'pypdf>=4.2.0',
   # https://github.com/WolfgangFahl/pySemanticSlides
   'pysemanticslides==0.0.10',
   # https://networkx.org/
-  'networkx==3.3'
+  'networkx==3.3',
   # https://github.com/pydot/pydot
   'pydot>=2.0.0',
   # https://graphviz.org/

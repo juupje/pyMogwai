@@ -2,11 +2,7 @@ import os
 import unittest
 from timeit import default_timer as timer
 
-
-import mogwai.core.traversal as Trav
 from mogwai.core.steps.statics import Scope as MogwaiScope
-from mogwai.parser.filesystem import FileSystemGraph as FSG
-from mogwai.parser.graphml_converter import graphml_to_mogwaigraph
 
 from .basetest import BaseTest
 
@@ -71,7 +67,7 @@ class TestFileServer(BaseTest):
         start = timer()
         output =g.V(0).repeat(out().simple_path()).until(has_name(4)).path().by('name').as_('p').count(local=True).as_('length').order().limit(1).select('p', 'length').to_list().by('name')
         end = timer()
-        
+
         diff = end-start
         print(output)
         print (f"mogwai graph has the output in {diff} seconds") """

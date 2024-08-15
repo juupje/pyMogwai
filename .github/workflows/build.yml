@@ -30,8 +30,8 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Install openscad
-      run: sudo apt-get install -y openscad
+    - name: Install graphviz 
+      run: sudo apt-get install -y graphviz graphviz-dev 
 
 
     - name: Install dependencies

@@ -1,9 +1,14 @@
-from mogwai.core.traversal import MogwaiGraphTraversalSource
+import unittest
 
-from .basetest import BaseTest
+from mogwai.core.traversal import MogwaiGraphTraversalSource
+from tests.basetest import BaseTest
 
 
 class TestSteps(BaseTest):
+    """
+    test Steps
+    """
+
     def setUp(self):
         from mogwai.parser import graphml_to_mogwaigraph
 
@@ -17,27 +22,45 @@ class TestSteps(BaseTest):
             ),
         )
 
-    """def test_speed(self):
+    @unittest.skipIf(not BaseTest.inPublicCI(), "slow test")
+    def test_speed(self):
         g = MogwaiGraphTraversalSource(self.airroutes)
-        query = g.V().has_label("country").has_name("United States").out("contains").out("route").count().next()
+        query = (
+            g.V()
+            .has_label("country")
+            .has_name("United States")
+            .out("contains")
+            .out("route")
+            .count()
+            .next()
+        )
         print("Query:", query.print_query())
         res = query.run()
         print("Result", res)
         self.assertEqual(res, 9119, "Incorrect number of routes to US.")
-    """
-    """def test_monster(self):
-        from mogwai.core.steps.statics import outE, select, lte
+
+    @unittest.skipIf(not BaseTest.inPublicCI(), "very slow test")
+    def test_monster(self):
+        from mogwai.core.steps.statics import lte, outE, select
+
         g = MogwaiGraphTraversalSource(self.airroutes)
-        query = g.V().has_label('airport').has_name('LAX').as_('start').repeat(
-                outE('route').as_('e').outV().filter_(select('e').properties('dist').is_(lte(5000))).simple_path()
-            ).times(3).as_path().by('name')
+        query = (
+            g.V()
+            .has_label("airport")
+            .has_name("LAX")
+            .as_("start")
+            .repeat(
+                outE("route")
+                .as_("e")
+                .outV()
+                .filter_(select("e").properties("dist").is_(lte(5000)))
+                .simple_path()
+            )
+            .times(3)
+            .as_path()
+            .by("name")
+        )
         print("Query:", query.print_query())
         res = query.run()
         print("Result length", len(res))
-        self.assertTrue(len(res)==555028, "Incorrect result, expected 555028")"""
-
-
-if __name__ == "__main__":
-    import unittest
-
-    unittest.main()
+        self.assertTrue(len(res) == 555028, "Incorrect result, expected 555028")

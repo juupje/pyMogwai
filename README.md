@@ -1,5 +1,5 @@
 # PyMogwai
-PyMogwai is a Python-based implementation of the Gremlin graph traversal language, designed to create and handle knowledge graphs entirely in Python without the need for an external Gremlin server. 
+PyMogwai is a Python-based implementation of the Gremlin graph traversal language, designed to create and handle knowledge graphs entirely in Python without the need for an external Gremlin server.
 
 [![pypi](https://img.shields.io/pypi/pyversions/pyMogwai)](https://pypi.org/project/pyMogwai/)
 [![Github Actions Build](https://github.com/juupje/pyMogwai/actions/workflows/build.yml/badge.svg)](https://github.com/juupje/pyMogwai/actions/workflows/build.yml)
@@ -11,11 +11,11 @@ PyMogwai is a Python-based implementation of the Gremlin graph traversal languag
 
 ## Features
 * Supports knowledge grpah creation and manipulation
-* Supports the import of arbitrary knowledge graphs with GraphML 
+* Supports the import of arbitrary knowledge graphs with GraphML
 * Implements a variety of traversal steps
 * Enables one to traverse a graph with these steps
 * Ability to integrate data from various sources like Excel, PDF and PowerPoint
-* Simple and Pythonic API for graph operations 
+* Simple and Pythonic API for graph operations
 
 ## Getting started
 
@@ -64,3 +64,8 @@ query = g.V().has_label("person").filter_(properties('age').is_(gte(30))).to_lis
 res = query.run()
 print(res)
 ```
+
+# History
+This project started as part of the  [RWTH Aachen i5 Knowledge Graph Lab SS2024](https://dbis.rwth-aachen.de/dbis/index.php/2023/knowledge-graph-lab-ss-2024/)
+The original source is hosted at https://git.rwth-aachen.de/i5/teaching/kglab/ss2024/pymogwai
+2024-08-15 the repository moved to github for better pypi integration

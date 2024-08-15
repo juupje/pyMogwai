@@ -14,13 +14,13 @@ class MogwaiGraph (networkx.DiGraph):
         nodeID = next(self.counter)
         super().add_node(nodeID, labels=label,name=name, properties=properties or {})
         return nodeID
-    
+
     def add_labeled_edge(self,srcId:int,destId:int,edgeLabel:str,properties:dict=None):
         if(self.has_node(srcId) and self.has_node(destId)):
             super().add_edge(srcId,destId,labels=edgeLabel, properties=properties or {})
         else:
             raise MogwaiGraphError(f"Node with id {srcId if srcId<0 else destId} is not in the graph.")
-    
+
     def add_node(self, *args, **kwargs):
         raise MogwaiGraphError("Please use `add_labeled_node` to add nodes to a MogwaiGraph.")
 
@@ -32,7 +32,7 @@ class MogwaiGraph (networkx.DiGraph):
         if(n_none):
             return [n for n in self.nodes(date=True) if label.issubset(n[1]["labels"])]
         if(not n_none):
-            return [n for n in self.nodes(data=True) if label.issubset(n[1]["labels"]) and n[1]["name"]==name]                    
+            return [n for n in self.nodes(data=True) if label.issubset(n[1]["labels"]) and n[1]["name"]==name]
         return self.nodes
 
     def get_nodes(self, label:str|set, name:str):
@@ -42,11 +42,11 @@ class MogwaiGraph (networkx.DiGraph):
 
         l_none, n_none = label is None, name is None
         if(not l_none and not n_none):
-            return [n for n in self.nodes(data=True) if label in n[1]["labels"] and n[1]["name"]==name]            
+            return [n for n in self.nodes(data=True) if label in n[1]["labels"] and n[1]["name"]==name]
         if(l_none and not n_none):
-            return [n for n in self.nodes(data=True) if n[1]["name"]==name]           
+            return [n for n in self.nodes(data=True) if n[1]["name"]==name]
         if(not l_none and n_none):
-            return [n for n in self.nodes(date=True) if label in n[1]["labels"]]  
+            return [n for n in self.nodes(date=True) if label in n[1]["labels"]]
         return self.nodes
 
     def merge_subgraph(self, other:'MogwaiGraph', srcId:int, targetId:int, edgeLabel:str):
@@ -63,7 +63,7 @@ class MogwaiGraph (networkx.DiGraph):
             id = int(n.get_name())
             if include_id:
                 n.attr["label"] = f"{id:d}:{','.join(self.nodes[id]['labels'])}:{n.attr['name']}"
-            else:           
+            else:
                 n.attr["label"] = f"{','.join(self.nodes[id]['labels'])}:{n.attr['name']}"
             n.attr["tooltip"] = n.attr["properties"]
             del n.attr["properties"]
@@ -75,16 +75,20 @@ class MogwaiGraph (networkx.DiGraph):
             del e.attr['labels']
         A.layout(prog=prog)
         A.draw(outputfile)
-    
+
     @staticmethod
     def modern():
         return get_modern()
-    
+
     @staticmethod
     def crew():
         return get_crew()
 
 def get_modern() -> MogwaiGraph:
+    """
+    create the modern graph
+    see https://tinkerpop.apache.org/docs/current/tutorials/getting-started/
+    """
     g = MogwaiGraph()
     marko = g.add_labeled_node("Person", "marko", {"age": 29})
     vadas = g.add_labeled_node("Person", "vadas", {"age": 27})

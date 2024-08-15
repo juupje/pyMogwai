@@ -1,9 +1,12 @@
 from mogwai.core.traversal import MogwaiGraphTraversalSource
-
-from .basetest import BaseTest
+import unittest
+from tests.basetest import BaseTest
 
 
 class TestSteps(BaseTest):
+    """
+    test Steps
+    """
     def setUp(self):
         from mogwai.parser import graphml_to_mogwaigraph
 
@@ -17,15 +20,17 @@ class TestSteps(BaseTest):
             ),
         )
 
-    """def test_speed(self):
+    @unittest.skipIf(not BaseTest.inPublicCI(), "slow test")
+    def test_speed(self):
         g = MogwaiGraphTraversalSource(self.airroutes)
         query = g.V().has_label("country").has_name("United States").out("contains").out("route").count().next()
         print("Query:", query.print_query())
         res = query.run()
         print("Result", res)
         self.assertEqual(res, 9119, "Incorrect number of routes to US.")
-    """
-    """def test_monster(self):
+
+    @unittest.skipIf(not BaseTest.inPublicCI(), "very slow test")
+    def test_monster(self):
         from mogwai.core.steps.statics import outE, select, lte
         g = MogwaiGraphTraversalSource(self.airroutes)
         query = g.V().has_label('airport').has_name('LAX').as_('start').repeat(
@@ -34,10 +39,4 @@ class TestSteps(BaseTest):
         print("Query:", query.print_query())
         res = query.run()
         print("Result length", len(res))
-        self.assertTrue(len(res)==555028, "Incorrect result, expected 555028")"""
-
-
-if __name__ == "__main__":
-    import unittest
-
-    unittest.main()
+        self.assertTrue(len(res)==555028, "Incorrect result, expected 555028")

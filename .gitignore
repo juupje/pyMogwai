@@ -103,4 +103,7 @@ tests/*.svg
 tests/*.pdf
 tests/debugger.py
 
+#mdocs
 docs/
+# Eclipse workspace
+.settings

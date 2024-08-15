@@ -1,4 +1,4 @@
-from typing import Any, Self
+from typing import Any
 from copy import deepcopy
 import logging
 logger = logging.getLogger("Mogwai")
@@ -34,10 +34,10 @@ class Traverser:
             to_store = Traverser(*self.get, track_path=self.track_path)
         else:
             to_store = Traverser(self.get, track_path=self.track_path)
-            
+
         to_store.cache = self.cache.copy() #no need to deep copies
         self.cache["__store__"][key] = to_store
-        
+
     def load(self, key):
         #logger.debug(f"Cache: {self.cache['__store__'].keys()}")
         try:
@@ -52,14 +52,14 @@ class Traverser:
         assert key!="__store__", "`__store__` is a reserved key"
         self.cache[key] = val
 
-    def move_to(self, node_id: int) -> Self:
+    def move_to(self, node_id: int) -> 'Traverser':
         #logging.debug("Moving traverser from", self.get, "to", node_id)
         self.node_id = node_id
         self.target = None
         if(self.track_path):
             self.path.append(node_id)
         return self
-    
+
     def copy(self):
         t = Traverser(node_id=self.node_id, other_node_id=self.target, track_path=self.track_path)
         t.cache = deepcopy(self.cache)
@@ -73,7 +73,7 @@ class Traverser:
         else:
             t.move_to(node_id)
         return t
-    
+
     def to_value(self,val, dtype=None):
         val = Value(val, dtype=dtype)
         val.cache = deepcopy(self.cache)
@@ -96,7 +96,7 @@ class Value:
             self.val = val
             self.dtype = type(val)
         self.cache = {"__store__": {}}
-    
+
     @property
     def value(self):
         return self.val
@@ -108,7 +108,7 @@ class Value:
 
     def save(self, key):
         self.cache["__store__"][key] = self.copy()
-        
+
     def load(self, key):
         #logger.debug(f"Cache: {self.cache['__store__'].keys()}")
         try:
@@ -130,7 +130,7 @@ class Value:
 
     def __str__(self):
         return f"{self.__class__.__qualname__}[value={self.val}]"
-    
+
 class Property(Value):
     def __init__(self, key:str, val:Any, dtype=None):
         super().__init__(val, dtype=dtype)
@@ -138,12 +138,12 @@ class Property(Value):
 
     def get_key(self):
         return self.key
-    
+
     def to_value(self):
         val = Value(self.val, dtype=self.dtype)
         val.cache = deepcopy(self.cache)
         return val
-    
+
     def to_key(self):
         val = Value(self.key, dtype=str)
         val.cache = deepcopy(self.cache)

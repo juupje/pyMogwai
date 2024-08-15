@@ -9,6 +9,7 @@ class TestFileSystem(BaseTest):
     """
     test filesystem handling
     """
+
     def setUp(self, debug=True, profile=True):
         BaseTest.setUp(self, debug=debug, profile=profile)
         self.file_system = FSG(self.root_path)
@@ -32,7 +33,7 @@ class TestFileSystem(BaseTest):
         self.assertTrue("filesize" in properties, "No filesize property")
         if self.debug:
             print(properties["filesize"])
-        self.assertTrue(properties["filesize"] >2000, "Filesize is not correct")
+        self.assertTrue(properties["filesize"] > 2000, "Filesize is not correct")
         if not self.inPublicCI():
             self.file_system.draw(
                 os.path.join(self.root_path, "tests", "filesystem_test.svg"), prog="dot"

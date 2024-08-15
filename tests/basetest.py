@@ -12,4 +12,3 @@ class BaseTest(Basetest):
         Basetest.setUp(self, debug=debug, profile=profile)
         self.documents_path = os.path.join(os.path.dirname(__file__), "documents")
         self.root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-

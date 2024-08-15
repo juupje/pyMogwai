@@ -9,6 +9,7 @@ class TestTraverser(BaseTest):
     """
     test the traverser
     """
+
     def setUp(self):
         super().setUp()
         self.file_system = FSG(self.root_path)

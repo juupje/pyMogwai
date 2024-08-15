@@ -146,9 +146,9 @@ class TestSteps(BaseTest):
         res = query.run()
         print("Result:", res)
 
-    @unittest.skip("Skipping test since it takes too long")
+    @unittest.skipIf(not BaseTest.inPublicCI(), "slow test")
     def test_reachability(self):
-        from mogwai.core.steps.statics import Scope, count, lte, outE, select
+        from mogwai.core.steps.statics import Scope, lte, outE, select
 
         g = MogwaiGraphTraversalSource(self.airroutes)
         query = (
@@ -180,19 +180,6 @@ class TestSteps(BaseTest):
         res = query.run()
         print("Result length", len(res))
         # self.assertTrue(len(res)==555028, "Incorrect result, expected 555028")
-
-    """
-    def test_monster(self):
-        from mogwai.core.steps.statics import outE, select, lte
-        g = MogwaiGraphTraversalSource(self.airroutes)
-        query = g.V().has_label('airport').has_name('LAX').as_('start').repeat(
-                outE('route').as_('e').outV().filter_(select('e').values('dist').is_(lte(5000))).simple_path()
-            ).times(3).as_path().by('name')
-        print("Query:", query.print_query())
-        res = query.run()
-        print("Result length", len(res))
-        self.assertTrue(len(res)==555028, "Incorrect result, expected 555028")
-    """
 
 
 if __name__ == "__main__":

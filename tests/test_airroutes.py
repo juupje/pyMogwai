@@ -52,8 +52,8 @@ class TestSteps(BaseTest):
             .repeat(
                 outE("route")
                 .as_("e")
-                .outV()
-                .filter_(select("e").properties("dist").is_(lte(5000)))
+                .inV()
+                .filter_(select("e").values("dist").is_(lte(5000)))
                 .simple_path()
             )
             .times(3)

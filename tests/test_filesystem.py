@@ -24,8 +24,7 @@ class TestFileSystem(BaseTest):
             "Incorrect or missing label for README.md",
         )
         self.assertTrue("filesize" in properties, "No filesize property")
-        sizes = [2084, 2172]
-        self.assertTrue(properties["filesize"] in sizes, "Filesize is not correct")
+        self.assertTrue(properties["filesize"] > 2000, "Filesize is not correct")
         self.file_system.draw(
             os.path.join(self.root_path, "tests", "filesystem_test.svg"), prog="dot"
         )

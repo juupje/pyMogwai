@@ -17,13 +17,19 @@ maintainers = [
 readme = "README.md"
 license= "Apache-2.0"
 dependencies = [
-	# https://github.com/jeff-dh/SolidPython
-	'pypdf',
-	# nicegui
-    "nicegui>=1.4.35",
-    # fastapi
-	# uvicorn
-    "ngwidgets>=0.17.0",
+	# https://github.com/py-pdf/pypdf
+	'pypdf>=4.2.0',
+  # https://github.com/WolfgangFahl/pySemanticSlides
+  'pysemanticslides==0.0.10',
+  # https://networkx.org/
+  'networkx==3.3'
+  # https://github.com/pydot/pydot
+  'pydot>=2.0.0',
+  # https://graphviz.org/
+  'pygraphviz>=0.20.3',
+  # nicegui
+  "nicegui>=1.4.35",
+  "ngwidgets>=0.17.0",
 ]
 
 requires-python = ">=3.10"

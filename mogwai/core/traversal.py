@@ -394,8 +394,9 @@ class Traversal:
     def by(self, key:str|List[str]|'AnonymousTraversal') -> Self:
         prev_step = self.query_steps[-1]
         if prev_step.supports_by:
-            if isinstance(key, AnonymousTraversal) and not prev_step.supports_anonymous_by:
-                raise QueryError(f"Step `{prev_step.print_query()}` does not support anonymous traversals as by-modulations.")
+            if isinstance(key, AnonymousTraversal):
+                if not prev_step.supports_anonymous_by:
+                    raise QueryError(f"Step `{prev_step.print_query()}` does not support anonymous traversals as by-modulations.")
             elif type(key) is str:
                 if key != "name" and key != "labels":
                     key = (["properties"] + key) if type(key) is list else ["properties", key]
@@ -531,19 +532,39 @@ class AnonymousTraversal(Traversal):
     def run(self):
         raise ValueError("Cannot run anonymous traversals")
 
-    def __call__(self, traversal:Traversal, traversers:Iterable['Traverser']) -> Iterable['Traverser']:
+    def _build(self, traversal:Traversal):
+        #first, set the necessary fields
+        self.graph = traversal.graph
+        self.eager = traversal.eager
+        self.use_mp = traversal.use_mp
+        self.verify_query = traversal.verify_query
+        self.needs_path = any([s.needs_path for s in self.query_steps])
+        self.optimize = traversal.optimize
+        if traversal.optimize: self._optimize_query()
+        if self.verify_query: self._verify_query()
+        if self.query_steps[0].isstart:
+            self.query_steps[0].set_traversal(self)
+        super()._build()
+
+    def __call__(self, traversers:Iterable['Traverser']) -> Iterable['Traverser']:
         #if this traversal is empty, just reflect back the incoming traversers
         if len(self.query_steps)==0:
             return traversers
-        #first, set the necessary fields
-        self.graph = traversal.graph
         self.traversers = traversers
-        if self.query_steps[0].isstart:
-            self.query_steps[0].set_traversal(self)
-        self.needs_path = any([s.needs_path for s in self.query_steps])
-        for step in self.query_steps:
-            logger.debug("Running step:" + str(step))
-            self.traversers = step(self.traversers)
+        if self.eager:
+            try:
+                for step in self.query_steps:
+                    logger.debug("Running step:"+ str(step))
+                    self.traversers = step(self.traversers)
+                    if not type(self.traversers) is list:
+                        self.traversers = list(self.traversers)
+            except Exception as e:
+                raise GraphTraversalError(f"Something went wrong in step {step.print_query()}")
+        else:
+            for step in self.query_steps:
+                logger.debug("Running step:"+ str(step))
+                self.traversers = step(self.traversers)
+            #TODO: Try to do some fancy error handling
         return self.traversers
 
 class MogwaiGraphTraversalSource:

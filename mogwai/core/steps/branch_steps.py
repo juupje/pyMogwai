@@ -1,7 +1,7 @@
 from .base_steps import BranchStep
 from mogwai.core import Traversal, AnonymousTraversal
 from typing import Iterable
-from mogwai.core import Traverser
+from mogwai.core.traverser import Traverser, Value
 from uuid import uuid4
 from ..exceptions import GraphTraversalError
 from mogwai.decorators import as_traversal_function, with_call_order
@@ -23,18 +23,25 @@ class Repeat(BranchStep):
         self.until = until
         self.uuid = uuid4().time_mid
     
+    def build(self):
+        self.do._build(self.traversal)
+        if self.until:
+            self.until._build(self.traversal)
+        if self.emit and isinstance(self.emit, AnonymousTraversal):
+            self.emit.build(self.traversal)
+
     def __call__(self, traversers:Iterable[Traverser]) -> Iterable[Traverser]:
         if self.emit:
             def emit_filter(travs:Iterable[Traverser]):
                 if(self.emit==True):
                     return travs
                 else:
-                    return (t for t in travs if next(iter(self.emit(self.traversal, [t])), _NA)!=_NA)
+                    return (t for t in travs if next(iter(self.emit([t])), _NA)!=_NA)
 
         if self.times:
             result = (emit_filter(traversers) if self.emit_before else []) if self.emit else None
             for _ in range(self.times):
-                traversers = self.do(self.traversal, traversers)
+                traversers = self.do(traversers)
                 if(self.emit):
                     traversers = ensure_is_list(traversers)
                     result.extend(emit_filter(traversers))
@@ -43,7 +50,7 @@ class Repeat(BranchStep):
             #prepare by setting the counter to 0 and defining the steps
             self.counter = 0
             def do_step(travs:Iterable[Traverser]) -> Iterable[Traverser]:
-                travs = self.do(self.traversal, travs)
+                travs = self.do(travs)
                 self.counter += 1
                 if(self.counter>=self.traversal.max_iteration_depth):
                     raise GraphTraversalError("Max iteration depth reached in Repeat step")
@@ -51,7 +58,7 @@ class Repeat(BranchStep):
             def until_step(travs:Iterable[Traverser]) -> Tuple[Set[Traverser], Set[Traverser]]:
                 travs = ensure_is_set(travs)
                 #we can't use generators here
-                condition_fulfilled = {t for t in travs if next(iter(self.until(self.traversal, [t.copy()])), _NA)!=_NA}
+                condition_fulfilled = {t for t in travs if next(iter(self.until([t.copy()])), _NA)!=_NA}
                 #for remaining_travs the condition is fullfilled
                 return condition_fulfilled, travs-condition_fulfilled
             
@@ -110,22 +117,37 @@ class Branch(BranchStep):
         self.options = {}
         self.defaultStep=None
     
+    #TODO update flags when options are added
+
+    def build(self):
+        self.branchFunc._build(self.traversal)
+        for k, v in self.options.items():
+            v._build(self.traversal)
+        if self.defaultStep:
+            self.defaultStep._build(self.traversal)
+
     def __call__(self,traversers:Iterable[Traverser])->Iterable[Traverser]:
         valueTraverserPairs = []
         for traverser in traversers:
-            ret = self.branchFunc(self.traversal,[traverser.copy()])
-            ret = ensure_is_list(ret)
-            valueTraverserPairs.append((traverser,ret[0]))
+            ret = self.branchFunc([traverser.copy()])
+            ret = next(iter(ret), _NA)
+            if ret!=_NA:
+                if isinstance(ret, Value):
+                    valueTraverserPairs.append((traverser,ret.value))
+                elif isinstance(ret, Traverser):
+                    valueTraverserPairs.append((traverser,ret.get))
+                else:
+                    raise GraphTraversalError(f"Branch function should return a Value or a Traverser, got {type(ret)}")
         ret = []
         for valueTraverserPair in valueTraverserPairs:
-            if valueTraverserPair[1].value in self.options.keys():
-                func = self.options[valueTraverserPair[1].value]
-                ret.extend(list(func(self.traversal,[valueTraverserPair[0]])))
+            if valueTraverserPair[1] in self.options.keys():
+                func = self.options[valueTraverserPair[1]]
+                ret.extend(list(func([valueTraverserPair[0]])))
             else:
                 if self.defaultStep is not None:
-                    ret.extend(list(self.defaultStep(self.traversal,[valueTraverserPair[0]])))
-                else:
-                    ret.extend(list(self.traversal,[valueTraverserPair[0]]))
+                    ret.extend(list(self.defaultStep([valueTraverserPair[0]])))
+                #else:
+                #    ret.append(valueTraverserPair[0])
         return ret
 
     def print_query(self) -> str:
@@ -139,9 +161,12 @@ class Local(BranchStep):
     def __init__(self, traversal:Traversal, localTrav:AnonymousTraversal):
         super().__init__(traversal=traversal, flags=Local.NEEDS_PATH if localTrav.needs_path else 0)
         self.localTrav = localTrav
+    
+    def build(self):
+        return self.localTrav._build(self.traversal)
 
     def __call__(self, traversers: Iterable[Traverser]) -> Iterable[Traverser]:
-        return (t1 for t in traversers for t1 in self.localTrav(self.traversal, [t]))
+        return (t1 for t in traversers for t1 in self.localTrav([t]))
     
     def print_query(self) -> str:
         return f"{self.__class__.__name__}({self.localTrav.print_query()})"

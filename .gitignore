@@ -103,6 +103,10 @@ tests/*.svg
 tests/*.pdf
 tests/debugger.py
 
+#ignore temporary files
+./time_queries.py
+tests/queries.txt
+
 #mdocs
 docs/
 # Eclipse workspace

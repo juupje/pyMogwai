@@ -8,6 +8,7 @@ from dataclasses import dataclass
 
 import mogwai
 
+
 @dataclass
 class Version(object):
     """

@@ -2,21 +2,12 @@ import os
 import unittest
 from timeit import default_timer as timer
 
-from gremlin_python.driver.aiohttp.transport import (
-    AiohttpHTTPTransport,
-    AiohttpTransport,
-)
-from gremlin_python.driver.client import Client
 from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
 from gremlin_python.process.anonymous_traversal import traversal
 from gremlin_python.process.graph_traversal import __
 from gremlin_python.process.traversal import Scope
-from gremlin_python.structure.graph import Graph
 
-import mogwai.core.traversal as Trav
 from mogwai.core.steps.statics import Scope as MogwaiScope
-from mogwai.parser.filesystem import FileSystemGraph as FSG
-from mogwai.parser.graphml_converter import graphml_to_mogwaigraph
 
 from .basetest import BaseTest
 
@@ -80,7 +71,7 @@ class TestFileServer(BaseTest):
         start = timer()
         output =g.V(0).repeat(out().simple_path()).until(has_name(4)).path().by('name').as_('p').count(local=True).as_('length').order().limit(1).select('p', 'length').to_list().by('name')
         end = timer()
-        
+
         diff = end-start
         print(output)
         print (f"mogwai graph has the output in {diff} seconds") """

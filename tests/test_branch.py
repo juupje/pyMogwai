@@ -1,5 +1,3 @@
-import os
-
 import mogwai.core.traversal as Trav
 from mogwai.core import MogwaiGraph
 from mogwai.parser.filesystem import FileSystemGraph as FSG
@@ -8,6 +6,9 @@ from .basetest import BaseTest
 
 
 class TestTraverser(BaseTest):
+    """
+    test the traverser
+    """
     def setUp(self):
         super().setUp()
         self.file_system = FSG(self.root_path)
@@ -15,13 +16,9 @@ class TestTraverser(BaseTest):
 
     # test branch(hasname("josh"),option(has("property")))
     def test_branch(self):
-        from mogwai.core.steps import branch_steps as bs
-
         g = Trav.MogwaiGraphTraversalSource(self.modern)
         print(g.connector.nodes(data=True))
         print(g.connector.edges())
-        from mogwai.core.steps import filter_steps as fs
-        from mogwai.core.steps import flatmap_steps as fms
         from mogwai.core.steps import map_steps as ms
 
         assertlist = ["ripple", "vadas", "josh", "peter", "lop", 29]

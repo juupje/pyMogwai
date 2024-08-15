@@ -10,12 +10,16 @@ PyMogwai is a Python-based implementation of the Gremlin graph traversal languag
 [![License](https://img.shields.io/github/license/juupje/pyMogwai.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
 ## Features
-* Supports knowledge grpah creation and manipulation
+* Supports knowledge graph creation and manipulation
 * Supports the import of arbitrary knowledge graphs with GraphML
 * Implements a variety of traversal steps
 * Enables one to traverse a graph with these steps
 * Ability to integrate data from various sources like Excel, PDF and PowerPoint
 * Simple and Pythonic API for graph operations
+
+## Demo
+[nicegui based demo](https://mogwai.bitplan.com/)
+
 
 ## Getting started
 

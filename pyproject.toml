@@ -1,0 +1,66 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pyMogwai"
+description = "PyMogwai is a Python-based implementation of the Gremlin graph traversal language, designed to create and handle knowledge graphs entirely in Python without the need for an external Gremlin server."
+keywords = ["nicegui", "pyMogwai", "gremlin", "knowledge graph", "graph traversal"]
+authors = [
+  {name = "Joep Geuskens", email = "joep.geuskens@rwth-aachen.de"},
+  {name = "Wolfgang Fahl", email = "wf@bitplan.com"}
+]
+maintainers = [
+  {name = "Joep Geuskens", email = "joep.geuskens@rwth-aachen.de"},
+  {name = "Wolfgang Fahl", email = "wf@bitplan.com"}
+]
+readme = "README.md"
+license= "Apache-2.0"
+dependencies = [
+	# https://github.com/jeff-dh/SolidPython
+	'pypdf',
+	# nicegui
+    "nicegui>=1.4.35",
+    # fastapi
+	# uvicorn
+    "ngwidgets>=0.17.0",
+]
+
+requires-python = ">=3.10"
+classifiers=[
+    "Development Status :: 4 - Beta",
+    "Environment :: Web Environment",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License"
+    ]
+dynamic = ["version"]
+[tool.hatch.version]
+path = "mogwai/__init__.py"
+
+[project.urls]
+Home = "https://github.com/juupje/pyMogwai"
+Documentation = "https://cr.bitplan.com/index.php/pyMogwai"
+Source = "https://github.com/juupje/pyMogwai"
+
+[project.optional-dependencies]
+test = [
+  "green",
+]
+
+[tool.hatch.build.targets.wheel]
+only-include = ["mogwai", "mogwai_examples"]
+
+[tool.hatch.build.targets.wheel.sources]
+"mogwai" = "mogwai"
+"mogwai_examples" = "mogwai_examples"
+
+[project.scripts]
+mogwai = "mogwai.mogwai_cmd:main"

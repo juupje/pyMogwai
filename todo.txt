@@ -1,0 +1,22 @@
+implement the following steps:
+x local
+- fold
+x multiple by's
+x multiple keys in value
+x values
+x hasNot
+x has with three keys
+x hasNext
+x hasId with multiple IDs
+- hasLabel with multiple IDs
+- hasName with multiple IDs
+x hasKey
+x hasValue
+- predicates
+    - between
+    - within
+x skip
+x range
+- valueMap
+x build method
+x eager execution

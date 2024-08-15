@@ -1,0 +1,33 @@
+import os
+
+from mogwai.parser import PDFGraph
+
+from .basetest import BaseTest
+
+
+class TestFileSystem(BaseTest):
+    def setUp(self):
+        super().setUp()
+        # Initialize a sample file system structure for testing
+        self.filename = os.path.join(self.documents_path, "lorem.pdf")
+
+    def test_thesis(self):
+        graph = PDFGraph(self.filename)
+        nodes = graph.get_nodes("PDFFile", "lorem.pdf")
+        self.assertTrue(len(nodes) == 1, "Incorrect number of lorem.pdf nodes")
+        self.assertTrue(
+            nodes[0][1]["properties"]["metadata"]["creator"].startswith("LaTeX"),
+            "'Creator' field of metadata incorrect.",
+        )
+        self.assertTrue(
+            graph.get_nodes("PDFTitle", "discussion")[0][1]["properties"]["page_number"]
+            == 3,
+            "Discussion at wrong place",
+        )
+        graph.draw(os.path.join(self.root_path, "tests", "pdf_test.svg"), prog="dot")
+
+
+if __name__ == "__main__":
+    import unittest
+
+    unittest.main()

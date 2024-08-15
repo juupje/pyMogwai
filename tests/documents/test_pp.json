@@ -1,0 +1,48 @@
+{
+  'title': 'How to be an effective scientific session moderator',
+  'author': 'Musselman, Kristin',
+  'created': datetime.datetime(2019,
+  10,
+  1,
+  1,
+  43,
+  34),
+  'path': 'C:\\Users\\mgrue\\Studium\\Master3Semester\\Knowledge_Graph_Lab\\pymogwai\\tests\\documents\\test_pp1.pptx',
+  'slides': [
+    {
+      'page': 1,
+      'pdf_page': 1,
+      'title': 'How to be an effective scientific session moderator',
+      'name': '',
+      'text': [
+        'How to be  an effective scientific session moderator',
+        'Kristin Musselman PT, PhD',
+        ''
+      ],
+      'notes': ''
+    },
+    {
+      'page': 2,
+      'pdf_page': 2,
+      'title': 'Resources',
+      'name': '',
+      'text': [
+        'Resources',
+        'How to chair a scientific  conference session (and not look like a fool!) EUSPR Early Careers Forum. https://euspr.hypotheses.org/675Chairing Sessions. Scitable by Nature Communications. https://www.nature.com/scitable/topicpage/chairing-sessions-13908566/',
+        ''
+      ],
+      'notes': ''
+    },
+    {
+      'page': 3,
+      'pdf_page': 3,
+      'title': '',
+      'name': '',
+      'text': [
+        '“There’s a big difference between showing up and being awesome.”https://www.toprankblog.com/2010/11/moderators-speakers-conferences/',
+        ''
+      ],
+      'notes': ''
+    }
+  ]
+}

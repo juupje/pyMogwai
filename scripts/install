@@ -1,0 +1,4 @@
+#!/bin/bash
+# WF 2023-08-15
+# simple install via pyproject.toml
+pip install .

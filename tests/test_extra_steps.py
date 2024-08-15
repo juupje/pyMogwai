@@ -1,0 +1,118 @@
+import mogwai.core.traversal as Trav
+from mogwai.core import MogwaiGraph
+from mogwai.core.steps.flatmap_steps import out
+from mogwai.parser.filesystem import FileSystemGraph as FSG
+
+from .basetest import BaseTest
+
+
+class TestSteps(BaseTest):
+    def setUp(self):
+        super().setUp()
+        self.file_system = FSG(self.root_path)
+        self.modern = MogwaiGraph.modern()
+        self.crew = MogwaiGraph.crew()
+
+    def test_filter(self):
+        g = Trav.MogwaiGraphTraversalSource(self.file_system)
+        query = (
+            g.V()
+            .has_label("Directory")
+            .filter_(out("has_file").has_label("PDFFile"))
+            .to_list(by="name")
+        )
+        print("Query:", query.print_query())
+        res = query.run()
+        print("Result:", res)
+        self.assertIn("documents", res, "'documents' not in query result")
+        self.assertTrue(len(res) == 1, "Are there more folders with pdf documents?")
+
+    def test_is(self):
+        from mogwai.core.steps.map_steps import values
+        from mogwai.core.steps.predicates import gte
+
+        g = Trav.MogwaiGraphTraversalSource(self.modern)
+
+        # We want software written by >30 year olds
+        query = (
+            g.V()
+            .has_label("Person")
+            .filter_(values("age").is_(gte(30)))
+            .out("created")
+            .to_list(by="name")
+        )
+
+        print("Query:", query)
+        res = query.run()
+        print("Result:", res)
+
+    def test_count(self):
+        print("Checking count!")
+        from mogwai.core.steps.flatmap_steps import outE
+        from mogwai.core.steps.predicates import gt
+
+        g = Trav.MogwaiGraphTraversalSource(self.modern)
+        # we want persons who contributed to >1 softwares
+        query = (
+            g.V()
+            .has_label("Person")
+            .filter_(outE("created").count().is_(gt(1)))
+            .name()
+            .to_list()
+        )
+        print("Query:", query.print_query())
+        res = query.run()
+        print("Result:", res)
+        print(g.V().has_label("Person").outE("created").count().to_list().run())
+
+    def test_in(self):
+        g = Trav.MogwaiGraphTraversalSource(self.modern)
+        query = (
+            g.V()
+            .has_label("Software")
+            .as_("a")
+            .in_("created")
+            .has_name("peter")
+            .select("a", by="name")
+            .to_list()
+        )
+        print("Query:", query.print_query())
+        res = query.run()
+        print("Result:", res)
+        self.assertTrue("lop" in res and len(res) == 1, "Incorrect query result!")
+
+    def test_local(self):
+        g = Trav.MogwaiGraphTraversalSource(self.crew)
+        query = (
+            g.V().has_label("person").local(out("develops").limit(1).name()).to_list()
+        )
+        print("Query:", query.print_query())
+        res = query.run()
+        print("Result:", res)
+        self.assertTrue(len(res) == 3, "Incorrect query result!")
+
+    def test_range(self):
+        g = Trav.MogwaiGraphTraversalSource(self.modern)
+        query = g.V().has_label("Person").range(1, 3).name().to_list()
+        print("Query:", query.print_query())
+        res = query.run()
+        print("Result:", res)
+        self.assertTrue(len(res) == 2, "Incorrect query result!")
+
+        query = g.V().has_label("Person").skip(2).name().to_list()
+        print("Query:", query.print_query())
+        res = query.run()
+        print("Result:", res)
+        self.assertTrue(len(res) == 2, "Incorrect query result!")
+
+        query = g.V().has_label("Person").limit(1).name().to_list()
+        print("Query:", query.print_query())
+        res = query.run()
+        print("Result:", res)
+        self.assertTrue(len(res) == 1, "Incorrect query result!")
+
+
+if __name__ == "__main__":
+    import unittest
+
+    unittest.main()

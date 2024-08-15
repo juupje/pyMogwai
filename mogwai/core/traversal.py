@@ -1,0 +1,566 @@
+from typing import Any, Self, List, Set, Tuple, Callable, Iterable, Union, TYPE_CHECKING
+from .mogwaigraph import MogwaiGraph
+from mogwai.core.traverser import Traverser
+from mogwai.core.steps.scope import Scope
+from mogwai.decorators import with_call_order
+from .exceptions import QueryError	
+from mogwai.config import DEFAULT_ITERATION_DEPTH
+from mogwai.config import USE_MULTIPROCESSING
+from mogwai.core.exceptions import GraphTraversalError
+from multipledispatch import dispatch
+import traceback
+import logging
+logger = logging.getLogger("Mogwai")
+if TYPE_CHECKING:
+    from .steps.base_steps import Step
+
+class Traversal:
+    def __init__(self, source:'MogwaiGraphTraversalSource', start:'Step', optimize:bool=True, eager:bool=False, query_verify:bool=False, use_mp:bool=False):
+        if start is None:
+            raise QueryError("start step cannot be None")
+        self.query_steps = [start]
+        if(not self.query_steps[0].isstart):
+            raise QueryError("The first step should be a start-step, got " + str(self.query_steps[0]))
+        self.graph = source.connector
+        self.terminated = False
+        self.eager = eager
+        self.use_mp = use_mp
+        self.verify_query = query_verify
+        self.optimize = optimize
+        self.max_iteration_depth = DEFAULT_ITERATION_DEPTH
+
+    def _add_step(self, step: 'Step'):
+        if(self.terminated):
+            raise QueryError("Cannot add steps to a terminated traversal.")
+        self.query_steps.append(step)
+        if(step.isterminal): self.terminated=True
+
+    ## ===== FILTER STEPS ======
+    def filter_(self, condition:'AnonymousTraversal') -> Self:
+        from .steps.filter_steps import Filter
+        self._add_step(Filter(self, condition))
+        return self
+
+    def has(self, *args) -> Self:
+        #if `key` is a list, like ['a', 'b'], the value will be compared to data['a']['b']
+        from .steps.filter_steps import Has
+        if len(args)==1:
+            key, value = args[0], None
+            self._add_step(Has(self, key, value))
+        elif len(args)==2:
+            key, value = args
+            self._add_step(Has(self, key, value))
+        elif len(args)==3:
+            label, key, value = args
+            self._add_step(Has(self, key, value, label=label))
+        else:
+            raise QueryError("Invalid number of arguments for `has`")
+        return self
+    
+    def has_not(self, key:str):
+        from .steps.filter_steps import HasNot
+        self._add_step(HasNot(self, key))
+        return self
+
+    def has_key(self, *keys:str):
+        from .steps.filter_steps import HasKey
+        self._add_step(HasKey(self, *keys))
+        return self
+
+    def has_value(self, *values:Any) -> Self:
+        from .steps.filter_steps import HasValue
+        self._add_step(HasValue(self, *values))
+        return self
+
+    def has_id(self, *ids:int|tuple) -> Self:
+        from .steps.filter_steps import HasId
+        self._add_step(HasId(self, *ids))
+        return self
+
+    def has_name(self, name: str) -> Self:
+        return self.has("name", name)
+
+    def has_property(self, property: str, value: Any=None) -> Self:
+        keys = ["properties"] + property if type(property) is list else ["properties", property]
+        return self.has(keys, value)
+
+    def has_label(self, label: str|Set[str]) -> Self:
+        if isinstance(label, set):
+            from .steps.filter_steps import ContainsAll
+            self._add_step(ContainsAll(self, "labels", label))
+        else:
+            from .steps.filter_steps import Contains
+            self._add_step(Contains(self, "labels", label))
+        return self
+    
+    def is_(self, condition: Any) -> Self:
+        from .steps.filter_steps import Is
+        self._add_step(Is(self, condition))
+        return self
+
+    def contains(self, key:str|List[str], value:Any) -> Self:
+        if isinstance(value, list):
+            from .steps.filter_steps import ContainsAll
+            self._add_step(ContainsAll(self, key, value))
+        else:
+            from .steps.filter_steps import Contains
+            self._add_step(Contains(self, key, value))
+        return self
+
+    def within(self, key:str|List[str], options:List[Any]) -> Self:
+        from .steps.filter_steps import Within
+        self._add_step(Within(self, key, options))
+        return self
+
+    def simple_path(self, by:str|List[str]=None) -> Self:
+        from .steps.filter_steps import SimplePath
+        self._add_step(SimplePath(self, by=by))
+        return self
+    
+    def limit(self, n:int) -> Self:
+        from .steps.filter_steps import Range
+        self._add_step(Range(self, 0, n))
+        return self
+
+    def range(self, start:int, end:int) -> Self:
+        from .steps.filter_steps import Range
+        self._add_step(Range(self, start, end))
+        return self
+    
+    def skip(self, n:int) -> Self:
+        from .steps.filter_steps import Range
+        self._add_step(Range(self, n, -1))
+        return self
+
+    def dedup(self, by:str|List[str]=None) -> Self:
+        from .steps.filter_steps import Dedup
+        self._add_step(Dedup(self, by=by))
+        return self
+    
+    def not_(self, condition:'AnonymousTraversal') -> Self:
+        from .steps.filter_steps import Not
+        self._add_step(Not(self, condition))
+        return self
+    
+    def and_(self, A:'AnonymousTraversal', B:'AnonymousTraversal') -> Self:
+        from .steps.filter_steps import And
+        self._add_step(And(self, A, B))
+        return self
+
+    def or_(self, A:'AnonymousTraversal', B:'AnonymousTraversal') -> Self:
+        from .steps.filter_steps import Or
+        self._add_step(Or(self, A, B))
+        return self
+
+    ## ===== MAP STEPS ======
+    def identity(self) -> Self: #required for math reasons
+        return self
+    
+    # Important: `value` extract values from *Property's*
+    # `values` extracts values from *elements*!
+    # So, .properties(key).value() is the same as .values(key)
+    def value(self) -> Self:
+        from .steps.map_steps import Value
+        self._add_step(Value(self))
+        return self
+    
+    def key(self) -> Self:
+        from .steps.map_steps import Key
+        self._add_step(Key(self))
+        return self
+
+    def values(self, *keys:str|List[str]) -> Self:
+        from .steps.map_steps import Values
+        self._add_step(Values(self, *keys))
+        return self
+    
+    def name(self) -> Self:
+        return self.values("name")
+
+    def label(self) -> Self:
+        return self.values("labels")
+
+    '''
+    def properties(self, *keys:str|List[str]) -> Self:
+        # TODO: change this to return Property's
+        from .steps.map_steps import Value
+        for i in range(len(keys)):
+            if keys[i] is None:
+                keys = "properties"
+            elif type(keys[i]) is list:
+                keys[i] = ["properties"] + keys[i]
+            else:
+                keys[i] = ["properties", keys[i]]
+        self._add_step(Value(self, keys))
+        return self
+    '''
+    def properties(self, *keys:str|List[str]) -> Self:
+        from .steps.map_steps import Properties
+        self._add_step(Properties(self, *keys))
+        return self
+
+    def select(self, *args:str, by:str=None) -> Self:
+        from .steps.map_steps import Select
+        self._add_step(Select(self, keys=args[0] if len(args)==1 else list(args), by=by))
+        return self
+
+    def order(self, by:str|List[str]|'AnonymousTraversal'=None, asc:bool|None=None, **kwargs) -> Self:
+        from .steps.map_steps import Order
+        self._add_step(Order(self, by, asc, **kwargs))
+        return self
+    
+    def count(self, scope:Scope=Scope.global_) -> Self:
+        from .steps.map_steps import Count
+        self._add_step(Count(self, scope))
+        return self
+
+    def path(self, by:str|List[str]=None) -> Self:
+        from .steps.map_steps import Path
+        self._add_step(Path(self, by=by))
+        return self
+
+    def max_(self, scope:Scope=Scope.global_) -> Self:
+        from .steps.map_steps import Max
+        self._add_step(Max(self, scope))
+        return self
+    
+    def min_(self, scope:Scope=Scope.global_) -> Self:
+        from .steps.map_steps import Min
+        self._add_step(Min(self, scope))
+        return self
+    
+    def sum_(self, scope:Scope=Scope.global_) -> Self:
+        from .steps.map_steps import Aggregate
+        self._add_step(Aggregate(self, "sum", scope))
+        return self
+
+    def mean(self, scope:Scope=Scope.global_) -> Self:
+        from .steps.map_steps import Aggregate
+        self._add_step(Aggregate(self, "mean", scope))
+        return self
+
+    ## ===== FLATMAP STEPS ======
+    def out(self, direction: str=None) -> Self:
+        from .steps.flatmap_steps import Out
+        self._add_step(Out(self, direction))
+        return self
+    
+    def outE(self, direction:str=None) -> Self:
+        from .steps.flatmap_steps import OutE
+        self._add_step(OutE(self, direction))
+        return self
+    
+    def outV(self) -> Self:
+        from .steps.flatmap_steps import OutV
+        self._add_step(OutV(self))
+        return self
+
+    def in_(self, direction: str=None) -> Self:
+        from .steps.flatmap_steps import In
+        self._add_step(In(self, direction))
+        return self
+    
+    def inE(self, direction:str=None) -> Self:
+        from .steps.flatmap_steps import InE
+        self._add_step(InE(self, direction))
+        return self
+    
+    def inV(self) -> Self:
+        from .steps.flatmap_steps import InV
+        self._add_step(InV(self))
+        return self
+    
+    def both(self, direction:str=None) -> Self:
+        from .steps.flatmap_steps import Both
+        self._add_step(Both(self, direction))
+        return self
+    
+    def bothE(self, direction:str=None) -> Self:
+        from .steps.flatmap_steps import BothE
+        self._add_step(BothE(self, direction))
+        return self
+
+    def bothV(self) -> Self:
+        from .steps.flatmap_steps import BothV
+        self._add_step(BothV(self))
+        return self
+    
+    ## ===== BRANCH STEPS =====
+    @with_call_order
+    def repeat(self, do:'Traversal', times:int|None=None, until:'AnonymousTraversal|None'=None, **kwargs) -> Self:
+        from .steps.branch_steps import Repeat
+        from .steps.modulation_steps import Temp
+        if(until is not None):
+            until_do = len(kwargs.get("_order", []))>0 and kwargs["_order"][0]=="until"
+        else: until_do = None
+        
+        step = Repeat(self, do, times=times, until=until, until_do=until_do)
+        while isinstance((prevstep := self.query_steps[-1]), Temp):
+            if(prevstep.kwargs["type"]=="emit"):
+                step.emit = prevstep.kwargs["filter"]
+                step.emit_before = True
+            elif(prevstep.kwargs["type"]=="until"):
+                if(until is not None or times is not None):
+                    raise QueryError("Provided `until` to repeat when `times` or `until` was already set.")
+                step.until = prevstep.kwargs["cond"]
+                step.until_do = True
+            else:
+                break
+            self.query_steps.pop(-1) #remove the temporary step
+        self._add_step(step)
+        return self
+    
+    def local(self, localTrav:'AnonymousTraversal') -> Self:
+        from .steps.branch_steps import Local
+        self._add_step(Local(self, localTrav))
+        return self
+
+    def branch(self, branchFunc:'AnonymousTraversal') -> Self:
+        from .steps.branch_steps import Branch
+        from .steps.map_steps import MapStep
+        if len(branchFunc.query_steps)==0 or not isinstance(branchFunc.query_steps[-1], MapStep):
+            raise TypeError("Branch is only allowed to be given MapSteps")
+        self._add_step(Branch(self,branchFunc))
+        return self
+
+    ## ===== MODULATION STEPS ======
+    def option(self,branchKey,OptionStep:'AnonymousTraversal') -> Self:
+        from .steps.branch_steps import Branch
+        branchStep = self.query_steps[len(self.query_steps)-1]
+        if type(branchStep) is Branch:
+            branchStep.flags |= Step.NEEDS_PATH if OptionStep.needs_path else 0
+            if branchKey is not None:
+                if branchKey not in branchStep.options:
+                    branchStep.options[branchKey] = OptionStep
+                    return self
+                else:
+                    raise QueryError("Duplicate key " + str(branchKey) + ", please use distinct keys")
+            else:
+                if branchStep.defaultStep is None:
+                    branchStep.defaultStep=OptionStep
+                    return self
+                else:
+                    raise QueryError("Provided two default (None) options. This is not allowed")
+        else:
+            raise QueryError("Options can only be used after Branch()")
+
+    def until(self, cond:'AnonymousTraversal'):
+        from .steps.branch_steps import Repeat
+        prevstep = self.query_steps[-1]
+        if(isinstance(prevstep, Repeat)):
+            if (prevstep.until is None and prevstep.times is None):
+                prevstep.until = cond
+                prevstep.until_do = False
+                if cond.needs_path: prevstep.flags |= Repeat.NEEDS_PATH
+            else:
+                raise QueryError("Provided `until` to repeat when `times` or `until` was already set.")
+        else:
+            from .steps.modulation_steps import Temp
+            self._add_step(Temp(self,type="until", cond=cond))
+        return self
+    
+    def times(self, reps:int):
+        from .steps.branch_steps import Repeat
+        prevstep = self.query_steps[-1]
+        if isinstance(prevstep, Repeat):
+            if prevstep.times is None and prevstep.until is None:
+                prevstep.times = reps
+            else:
+                raise QueryError("Provided `times` to repeat when `times` or `until` was already set.")
+        else:
+            raise QueryError(f"`times` modulation is not supported by step {prevstep.print_query()}")
+        return self
+    
+    def emit(self, filter:'AnonymousTraversal|None'=None):
+        from .steps.branch_steps import Repeat
+        prevstep = self.query_steps[-1]
+        if(isinstance(prevstep, Repeat)):
+            if (prevstep.emit is None):
+                prevstep.emit = filter or True
+                prevstep.emit_before = False
+                if filter and filter.needs_path: prevstep.flags |= Repeat.NEEDS_PATH
+            else:
+                raise QueryError("Provided `emit` to repeat when `emit` was already set.")
+        else:
+            from .steps.modulation_steps import Temp
+            self._add_step(Temp(self,type="emit", filter=filter or True))
+        return self
+    
+    def as_(self, name:str) -> Self:
+        from .steps.modulation_steps import As
+        self._add_step(As(self, name))
+        return self
+    
+    def by(self, key:str|List[str]|'AnonymousTraversal') -> Self:
+        prev_step = self.query_steps[-1]
+        if prev_step.supports_by:
+            if isinstance(key, AnonymousTraversal) and not prev_step.supports_anonymous_by:
+                raise QueryError(f"Step `{prev_step.print_query()}` does not support anonymous traversals as by-modulations.")
+            elif type(key) is str:
+                if key != "name" and key != "labels":
+                    key = (["properties"] + key) if type(key) is list else ["properties", key]
+            else:
+                raise QueryError("Invalid key type for by-modulation")
+        
+            if prev_step.supports_multiple_by:
+                prev_step.by.append(key)
+            elif prev_step.by is None:
+                prev_step.by = key
+            else:
+                raise QueryError(f"Step `{prev_step.print_query()}` does not support multiple by-modulations.")
+        else:
+            raise QueryError(f"Step `{prev_step.print_query()}` does not support by-modulation.")
+        return self
+
+    ## ===== SIDE EFFECT STEPS ======
+    def side_effect(self, side_effect:'AnonymousTraversal|Callable[[Traverser], None]') -> Self:
+        from .steps.base_steps import SideEffectStep
+        self._add_step(SideEffectStep(self, side_effect))
+        return self
+    
+    def property(self, key:str|List[str], value:Any) -> Self:
+        from .steps.base_steps import SideEffectStep
+        from mogwai.utils import get_dict_indexer
+        keys = ['properties'] + (key if type(key) is list else [key])
+        indexer =  get_dict_indexer(keys[:-1])
+        def effect(t:'Traverser'):
+            indexer(self._get_element(t))[keys[-1]] = value
+        self._add_step(SideEffectStep(self, side_effect=effect))
+        return self
+    
+    ## ===== TERMINAL STEPS ======
+    def to_list(self, by:List[str]|str=None,include_data:bool=False) -> Self:
+        #terminal step
+        from .steps.terminal_steps import ToList
+        self._add_step(ToList(self, by=by, include_data=include_data))
+        return self
+
+    def as_path(self, by:List[str]|str=None) -> Self:
+        #terminal step
+        from .steps.terminal_steps import AsPath
+        self._add_step(AsPath(self, by=by))
+        return self
+    
+    def has_next(self) -> Self:
+        from .steps.terminal_steps import HasNext
+        self._add_step(HasNext(self))
+        return self
+    
+    def next(self) -> Self:
+        from .steps.terminal_steps import Next
+        self._add_step(Next(self))
+        return self
+    
+    def iter(self, by:str|List[str]=None, include_data:bool=False) -> Self:
+        from .steps.terminal_steps import AsGenerator
+        self._add_step(AsGenerator(self, by=by, include_data=include_data))
+        return self
+
+    def _optimize_query(self):
+        pass
+
+    def _verify_query(self):
+        from .steps.modulation_steps import Temp
+        for step in self.query_steps:
+            if isinstance(step, Temp):
+                raise QueryError(f"Remaining modulation step of type `{step['type']}`")
+        return True
+
+    def _build(self):
+        for step in self.query_steps:
+            step.build()
+
+    def run(self) -> Any:
+        #first, provide the start step with this traversal
+        self.traversers = []
+        self.query_steps[0].set_traversal(self)
+        self._build()
+        self.needs_path = any([s.needs_path for s in self.query_steps])
+        if self.optimize: self._optimize_query()
+        self._verify_query()
+        if self.eager:
+            try:
+                for step in self.query_steps:
+                    logger.debug("Running step:"+ str(step))
+                    self.traversers = step(self.traversers)
+                    if not type(self.traversers) is list:
+                        self.traversers = list(self.traversers)
+            except Exception as e:
+                raise GraphTraversalError(f"Something went wrong in step {step.print_query()}")
+        else:
+            for step in self.query_steps:
+                logger.debug("Running step:"+ str(step))
+                self.traversers = step(self.traversers)
+            #TODO: Try to do some fancy error handling
+        return self.traversers
+
+    def _get_element(self, traverser:'Traverser', data:bool=False):
+        if type(traverser)==Traverser:
+            if(data):
+                return self.graph.edges[traverser.get] if traverser.is_edge else self.graph.nodes(data=data)[traverser.get]
+            return self.graph.edges[traverser.get] if traverser.is_edge else self.graph.nodes[traverser.get]
+        else:
+            raise GraphTraversalError("Cannot get element from value or property traverser." + \
+                                      " Probably you are performing a step that can only be executed on graph elements on a value or property traverser.")
+
+    def _get_element_from_id(self, element_id:int|tuple):
+        return self.graph.nodes[element_id] if type(element_id) is int else self.graph.edges[element_id]
+
+    def print_query(self) -> str:
+        return " -> ".join([x.print_query() for x in self.query_steps])
+
+    def __str__(self) -> str:
+        return self.print_query()
+    
+class AnonymousTraversal(Traversal):
+    def __init__(self, start:'Step'=None):
+        self.query_steps = [start] if start else []
+        self.graph = None
+        self.terminated = False
+        self._needs_path = False
+    
+    #we need this since anonymous traversals need to check this before they're run.
+    @property
+    def needs_path(self):
+        return self._needs_path or any((s.needs_path for s in self.query_steps))
+    
+    @needs_path.setter
+    def needs_path(self, value):
+        self._needs_path = value
+
+    def run(self):
+        raise ValueError("Cannot run anonymous traversals")
+
+    def __call__(self, traversal:Traversal, traversers:Iterable['Traverser']) -> Iterable['Traverser']:
+        #if this traversal is empty, just reflect back the incoming traversers
+        if len(self.query_steps)==0:
+            return traversers
+        #first, set the necessary fields
+        self.graph = traversal.graph
+        self.traversers = traversers
+        if self.query_steps[0].isstart:
+            self.query_steps[0].set_traversal(self)
+        self.needs_path = any([s.needs_path for s in self.query_steps])
+        for step in self.query_steps:
+            logger.debug("Running step:" + str(step))
+            self.traversers = step(self.traversers)
+        return self.traversers
+
+class MogwaiGraphTraversalSource:
+    def __init__(self, connector:MogwaiGraph, eager:bool=False, optimize:bool=True, use_mp:bool=USE_MULTIPROCESSING):
+        self.connector = connector
+        self.traversal_args = dict(optimize=optimize, eager=eager, query_verify=True, use_mp=use_mp)
+
+    def E(self, init:Tuple[int]|List[Tuple[int]]=None) -> Traversal:
+        from .steps.start_steps import E
+        return Traversal(self, start=E(self.connector, init), **self.traversal_args)
+
+    def V(self, init:int|List[int]=None) -> Traversal:
+        from .steps.start_steps import V
+        return Traversal(self, start=V(self.connector, init), **self.traversal_args)
+
+    def addE(self) -> Traversal:
+        raise NotImplementedError("This has not been implemented yet.")
+
+    def addV(self) -> Traversal:
+        raise NotImplementedError("This has not been implemented yet.")

@@ -1,0 +1,74 @@
+{
+  'creator': 'Marcel Grün',
+  'title': 'BspTitel',
+  'description': 'Ein schöner Kommentar',
+  'subject': 'BspThema',
+  'identifier': None,
+  'language': None,
+  'lastModifiedBy': 'Marcel Grün',
+  'category': 'BspKategorie',
+  'status': None,
+  'version': None,
+  'revision': None,
+  'keywords': 'BspStichwort',
+  'created': datetime.datetime(2024,
+  5,
+  15,
+  20,
+  46,
+  35),
+  'modified': datetime.datetime(2024,
+  5,
+  15,
+  23,
+  38,
+  23),
+  'sheets': [
+    {
+      'name': 'sheet1',
+      'column1': {
+        '0': 'a2',
+        '1': 'a3',
+        '2': 'a4',
+        '3': 'a5'
+      },
+      'column2': {
+        '0': 'b2',
+        '1': 'b3',
+        '2': 'b4',
+        '3': 'b5'
+      },
+      'column3': {
+        '0': 'c2',
+        '1': 'c3',
+        '2': 'c4',
+        '3': 'c5'
+      },
+      'column4': {
+        '0': 'd2',
+        '1': 'd3',
+        '2': 'd4',
+        '3': 'd5'
+      }
+    },
+    {
+      'name': 'sheet2',
+      '1': {
+        '0': 3,
+        '1': 0
+      },
+      '2': {
+        '0': 4,
+        '1': 0
+      },
+      '3': {
+        '0': 5,
+        '1': 1
+      },
+      '6': {
+        '0': 12,
+        '1': 1
+      }
+    }
+  ]
+}

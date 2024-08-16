@@ -8,8 +8,8 @@ from ngwidgets.users import Users
 from ngwidgets.input_webserver import InputWebserver, InputWebSolution
 from ngwidgets.webserver import WebserverConfig
 from mogwai.version import Version
-from nicegui import Client, ui
-from mogwai.core import MogwaiGraph
+from nicegui import Client, ui, run
+from mogwai.core import MogwaiGraph, Traversal
 from mogwai.parser import PDFGraph, powerpoint_converter
 from mogwai.parser.graphml_converter import graphml_to_mogwaigraph
 from mogwai.parser.excel_converter import EXCELGraph
@@ -18,6 +18,10 @@ import os
 import tempfile
 from starlette.responses import RedirectResponse
 
+class QueryResult:
+    def __init__(self,traversal,result):
+        self.traversal=traversal
+        self.result=result
 
 class MogwaiWebServer(InputWebserver):
     """
@@ -88,7 +92,10 @@ class MogwaiSolution(InputWebSolution):
             client (Client): The client instance this context is associated with.
         """
         super().__init__(webserver, client)
-        self.graph = MogwaiGraph.modern()
+        self.graph=None
+        self.graph_label=None
+        self.result_html=None
+        self.update_graph("modern")
 
     def setup_menu(self, detailed: bool = True):
         """
@@ -121,15 +128,41 @@ class MogwaiSolution(InputWebSolution):
 
         await self.setup_content_div(setup_parse)
 
+    async def on_graph_select(self,vce_args):
+        await run.io_bound(self.update_graph,vce_args.value)
+
+    def update_graph(self,graph_name:str):
+        self.graph_name=graph_name
+        self.graph = self.load_graph(name=graph_name)
+        if self.graph_label:
+            with self.header_row:
+                self.graph_label.content=self.get_graph_label()
+
+    def get_graph_label(self)->str:
+        graph_label=f"Query {self.graph.name} graph"
+        return graph_label
+
     async def query_graph(self):
         """Graph querying page"""
         def setup_query():
-            ui.label("Query Graph").classes('text-h4')
-            if self.graph:
-                query = ui.input(label="Enter Gremlin query")
-                ui.button("Run Query", on_click=lambda: self.run_query(query.value))
-            else:
-                ui.label("No graph loaded. Please parse a file first.")
+            try:
+                with ui.row() as self.header_row:
+                    graph_selection=["modern","crew"]
+                    self.graph_selector=self.add_select(
+                        "graph",
+                        graph_selection,
+                        value=self.graph_name,
+                        on_change=self.on_graph_select)
+                if self.graph:
+                    self.graph_label=ui.label(self.get_graph_label()).classes('text-h5')
+                    query = ui.input(label="Enter Gremlin query")
+                    ui.button("Run Query", on_click=lambda: self.on_run_query(query.value))
+                else:
+                    ui.label("No graph loaded. Please select a graph first.")
+                with ui.row() as self.result_row:
+                    self.result_html=ui.html()
+            except Exception as ex:
+                self.handle_exception(ex)
 
         await self.setup_content_div(setup_query)
 
@@ -141,19 +174,22 @@ class MogwaiSolution(InputWebSolution):
                 graph=MogwaiGraph.crew()
             else:
                 raise ValueError(f"invalid graph name {name}")
-        if file.name.endswith('.graphml'):
-            temp_path = os.path.join(tempfile.gettempdir(), file.name)
-            with open(temp_path, 'wb') as f:
-                f.write(file.read())
-            graph = graphml_to_mogwaigraph(file=temp_path)
-        elif file.name.endswith('.xlsx'):
-            graph = EXCELGraph(file)
-        elif file.name.endswith('.pdf'):
-            graph = PDFGraph(file)
-        elif file.name.endswith('.pptx'):
-            graph = powerpoint_converter.PPGraph(file=file)
+            graph.name=name
         else:
-            raise ValueError(f"invalid file {file.name}")
+            if file.name.endswith('.graphml'):
+                temp_path = os.path.join(tempfile.gettempdir(), file.name)
+                with open(temp_path, 'wb') as f:
+                    f.write(file.read())
+                graph = graphml_to_mogwaigraph(file=temp_path)
+            elif file.name.endswith('.xlsx'):
+                graph = EXCELGraph(file)
+            elif file.name.endswith('.pdf'):
+                graph = PDFGraph(file)
+            elif file.name.endswith('.pptx'):
+                graph = powerpoint_converter.PPGraph(file=file)
+            else:
+                raise ValueError(f"invalid file {file.name}")
+            graph.name=file.name
         return graph
 
     def handle_upload(self, e):
@@ -169,16 +205,31 @@ class MogwaiSolution(InputWebSolution):
             ui.notify("File parsed successfully", type="positive")
             ui.label(f"Imported a graph with {len(self.graph.nodes)} nodes and {len(self.graph.edges)} edges.")
 
-    def run_query(self, query):
+    def on_run_query(self, query:str):
         """Run a Gremlin query on the graph"""
         if not self.graph:
-            ui.notify("No graph loaded. Please parse a file first.", type="warning")
+            ui.notify("No graph loaded. Please select a graph first.", type="warning")
             return
-
-        g = Trav.MogwaiGraphTraversalSource(self.graph)
         try:
-            result = eval(query, {'g': g})
-            res = result.run()
-            ui.notify(f"Query result: {res}")
+            query_result=self.run_query(query)
+            self.display_result(query_result)
         except Exception as e:
             ui.notify(f"Error executing query: {str(e)}", type="negative")
+
+    def run_query(self,query)->QueryResult:
+        g = Trav.MogwaiGraphTraversalSource(self.graph)
+        traversal = eval(query, {'g': g})
+        if not traversal.terminated:
+            traversal=traversal.to_list()
+        result = traversal.run()
+        qr=QueryResult(traversal=traversal,result=result)
+        return qr
+
+    def display_result(self,query_result:QueryResult):
+        if self.result_html:
+            with self.result_row:
+                markup=f"{len(query_result.result)} elements:<br>"
+                for i,traverser in enumerate(query_result.result):
+                    markup+=f"{i+1}:{str(traverser)}<br>"
+                self.result_html.content=markup
+

@@ -132,16 +132,18 @@ class MogwaiSolution(InputWebSolution):
         await run.io_bound(self.update_graph,vce_args.value)
 
     def update_graph(self,graph_name:str):
-        self.graph_name=graph_name
-        self.graph = self.load_graph(name=graph_name)
-        if self.graph_label:
-            with self.header_row:
-                self.graph_label.content=self.get_graph_label()
+        try:
+            self.graph_name=graph_name
+            self.graph = self.load_graph(name=graph_name)
+            self.get_graph_label()
+            if self.graph_label:
                 self.graph_label.update()
+        except Exception as ex:
+            self.handle_exception(ex)
 
     def get_graph_label(self)->str:
-        graph_label=f"Query {self.graph.name} graph"
-        return graph_label
+        self.graph_label_text=f"Query {self.graph.name} graph"
+        return self.graph_label_text
 
     async def query_graph(self):
         """Graph querying page"""
@@ -155,7 +157,9 @@ class MogwaiSolution(InputWebSolution):
                         value=self.graph_name,
                         on_change=self.on_graph_select)
                 if self.graph:
-                    self.graph_label=ui.label(self.get_graph_label()).classes('text-h5')
+                    self.get_graph_label()
+                    self.graph_label=ui.label().classes('text-h5')
+                    self.graph_label.bind_text_from(self, 'graph_label_text')
                     query = ui.input(label="Enter Gremlin query")
                     ui.button("Run Query", on_click=lambda: self.on_run_query(query.value))
                 else:

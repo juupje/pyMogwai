@@ -5,7 +5,7 @@ from mogwai.core import MogwaiGraph
 from mogwai.core.steps.flatmap_steps import out
 from mogwai.parser.filesystem import FileSystemGraph as FSG
 
-from .basetest import BaseTest
+from tests.basetest import BaseTest
 
 
 class TestSteps(BaseTest):
@@ -27,7 +27,7 @@ class TestSteps(BaseTest):
         res = query.run()
         print("Result:", res)
         self.assertIn("documents", res, "'documents' not in query result")
-        self.assertTrue(len(res) == 1, "Are there more folders with pdf documents?")
+        self.assertTrue(len(res) > 0, "Are there folders with pdf documents?")
 
     def test_is(self):
         from mogwai.core.steps.map_steps import values

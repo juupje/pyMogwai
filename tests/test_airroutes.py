@@ -14,7 +14,7 @@ class TestSteps(BaseTest):
 
         super().setUp()
         self.airroutes = graphml_to_mogwaigraph(
-            "tests/documents/air-routes-latest.graphml",
+            f"{self.examples_path}/air-routes-latest.graphml",
             node_label_key="labelV",
             edge_label_key="labelE",
             node_name_key=lambda x: (
@@ -22,8 +22,10 @@ class TestSteps(BaseTest):
             ),
         )
 
-    @unittest.skipIf(not BaseTest.inPublicCI(), "slow test")
     def test_speed(self):
+        """
+        tests speed - 9119 results in 1.3 s on a 2.4 GHz 8 Core Intel Core i9
+        """
         g = MogwaiGraphTraversalSource(self.airroutes)
         query = (
             g.V()
@@ -39,8 +41,11 @@ class TestSteps(BaseTest):
         print("Result", res)
         self.assertEqual(res, 9119, "Incorrect number of routes to US.")
 
-    @unittest.skipIf(not BaseTest.inPublicCI(), "very slow test")
+    @unittest.skipIf(not BaseTest.inPublicCI(), "slow >90s test")
     def test_monster(self):
+        """
+        test half a million nodes as a result in over 90 secs
+        """
         from mogwai.core.steps.statics import lte, outE, select
 
         g = MogwaiGraphTraversalSource(self.airroutes)

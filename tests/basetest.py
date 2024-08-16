@@ -10,5 +10,7 @@ class BaseTest(Basetest):
 
     def setUp(self, debug=True, profile=True):
         Basetest.setUp(self, debug=debug, profile=profile)
-        self.documents_path = os.path.join(os.path.dirname(__file__), "documents")
-        self.root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        self.script_dir = os.path.dirname(os.path.abspath(__file__))
+        self.documents_path = os.path.join(self.script_dir, "documents")
+        self.examples_path = os.path.join(os.path.dirname(self.script_dir),"mogwai_examples")
+        self.root_path = self.script_dir

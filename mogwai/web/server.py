@@ -9,6 +9,7 @@ from ngwidgets.input_webserver import InputWebserver, InputWebSolution
 from ngwidgets.webserver import WebserverConfig
 from mogwai.version import Version
 from nicegui import Client, ui
+from mogwai.core import MogwaiGraph
 from mogwai.parser import PDFGraph, powerpoint_converter
 from mogwai.parser.graphml_converter import graphml_to_mogwaigraph
 from mogwai.parser.excel_converter import EXCELGraph
@@ -87,7 +88,7 @@ class MogwaiSolution(InputWebSolution):
             client (Client): The client instance this context is associated with.
         """
         super().__init__(webserver, client)
-        self.graph = None
+        self.graph = MogwaiGraph.modern()
 
     def setup_menu(self, detailed: bool = True):
         """
@@ -132,22 +133,36 @@ class MogwaiSolution(InputWebSolution):
 
         await self.setup_content_div(setup_query)
 
-    def handle_upload(self, e):
-        """Handle file upload"""
-        file = e.content
+    def load_graph(self,file=None,name:str="modern"):
+        if file is None:
+            if name=="modern":
+                graph=MogwaiGraph.modern()
+            elif name=="crew":
+                graph=MogwaiGraph.crew()
+            else:
+                raise ValueError(f"invalid graph name {name}")
         if file.name.endswith('.graphml'):
             temp_path = os.path.join(tempfile.gettempdir(), file.name)
             with open(temp_path, 'wb') as f:
                 f.write(file.read())
-            self.graph = graphml_to_mogwaigraph(file=temp_path)
+            graph = graphml_to_mogwaigraph(file=temp_path)
         elif file.name.endswith('.xlsx'):
-            self.graph = EXCELGraph(file)
+            graph = EXCELGraph(file)
         elif file.name.endswith('.pdf'):
-            self.graph = PDFGraph(file)
+            graph = PDFGraph(file)
         elif file.name.endswith('.pptx'):
-            self.graph = powerpoint_converter.PPGraph(file=file)
+            graph = powerpoint_converter.PPGraph(file=file)
         else:
-            ui.notify(f"Unsupported file type: {file.name}", type="negative")
+            raise ValueError(f"invalid file {file.name}")
+        return graph
+
+    def handle_upload(self, e):
+        """Handle file upload"""
+        file = e.content
+        try:
+            self.graph=self.load_graph(file)
+        except Exception as ex:
+            ui.notify(f"Unsupported file: {file.name} {str(ex)}", type="negative")
             return
 
         if self.graph:

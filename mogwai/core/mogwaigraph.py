@@ -3,6 +3,9 @@ from itertools import count
 from .exceptions import MogwaiGraphError
 
 class MogwaiGraph (networkx.DiGraph):
+    """
+    networkx based directed graph
+    """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.counter = count(0)
@@ -76,63 +79,57 @@ class MogwaiGraph (networkx.DiGraph):
         A.layout(prog=prog)
         A.draw(outputfile)
 
-    @staticmethod
-    def modern():
-        return get_modern()
+    @classmethod
+    def modern(cls) -> 'MogwaiGraph':
+        """
+        create the modern graph
+        see https://tinkerpop.apache.org/docs/current/tutorials/getting-started/
+        """
+        g = MogwaiGraph()
+        marko = g.add_labeled_node("Person", "marko", {"age": 29})
+        vadas = g.add_labeled_node("Person", "vadas", {"age": 27})
+        lop = g.add_labeled_node("Software", "lop", {"lang": "java"})
+        josh = g.add_labeled_node("Person", "josh", {"age": 32})
+        ripple = g.add_labeled_node("Software", "ripple", {"lang": "java"})
+        peter = g.add_labeled_node("Person", "peter", {"age": 35})
 
-    @staticmethod
-    def crew():
-        return get_crew()
+        g.add_labeled_edge(marko, vadas, "knows", {"weight": 0.5})
+        g.add_labeled_edge(marko, josh, "knows", {"weight": 1.0})
+        g.add_labeled_edge(marko, lop, "created", {"weight": 0.4})
+        g.add_labeled_edge(josh, ripple, "created", {"weight": 1.0})
+        g.add_labeled_edge(josh, lop, "created", {"weight": 0.4})
+        g.add_labeled_edge(peter, lop, "created", {"weight": 0.2})
+        return g
 
-def get_modern() -> MogwaiGraph:
-    """
-    create the modern graph
-    see https://tinkerpop.apache.org/docs/current/tutorials/getting-started/
-    """
-    g = MogwaiGraph()
-    marko = g.add_labeled_node("Person", "marko", {"age": 29})
-    vadas = g.add_labeled_node("Person", "vadas", {"age": 27})
-    lop = g.add_labeled_node("Software", "lop", {"lang": "java"})
-    josh = g.add_labeled_node("Person", "josh", {"age": 32})
-    ripple = g.add_labeled_node("Software", "ripple", {"lang": "java"})
-    peter = g.add_labeled_node("Person", "peter", {"age": 35})
+    @classmethod
+    def crew(cls) -> 'MogwaiGraph':
+        g = MogwaiGraph()
+        def t(startTime:int, endTime:int=None):
+            d = dict()
+            d["startTime"] = startTime
+            if endTime is not None:
+                d["endTime"] = endTime
+            return d
+        marko = g.add_labeled_node("person", "marko", {"location":{"san diego":t(1997,2001), "santa cruz":t(2001,2004), "brussels":t(2004,2005), "santa fe":t(2005)}})
+        stephen = g.add_labeled_node("person", "stephen", {"location":{"centreville":t(1990,2000),"dulles":t(2000,2006), "purcellvilee":t(2006)}})
+        matthias = g.add_labeled_node("person", "matthias", {"location":{"bremen":t(2004,2007), "baltimore":t(2007,2011), "oakland":t(2011,2014), "seattle":t(2014)}})
+        daniel = g.add_labeled_node("person", "daniel", {"location":{"spremberg":t(1982,2005), "kaiserslautern":t(2005,2009), "aachen":t(2009)}})
+        gremlin = g.add_labeled_node("software", "gremlin")
+        tinkergraph = g.add_labeled_node("software", "tinkergraph")
 
-    g.add_labeled_edge(marko, vadas, "knows", {"weight": 0.5})
-    g.add_labeled_edge(marko, josh, "knows", {"weight": 1.0})
-    g.add_labeled_edge(marko, lop, "created", {"weight": 0.4})
-    g.add_labeled_edge(josh, ripple, "created", {"weight": 1.0})
-    g.add_labeled_edge(josh, lop, "created", {"weight": 0.4})
-    g.add_labeled_edge(peter, lop, "created", {"weight": 0.2})
-    return g
-
-def get_crew() -> MogwaiGraph:
-    g = MogwaiGraph()
-    def t(startTime:int, endTime:int=None):
-        d = dict()
-        d["startTime"] = startTime
-        if endTime is not None:
-            d["endTime"] = endTime
-        return d
-    marko = g.add_labeled_node("person", "marko", {"location":{"san diego":t(1997,2001), "santa cruz":t(2001,2004), "brussels":t(2004,2005), "santa fe":t(2005)}})
-    stephen = g.add_labeled_node("person", "stephen", {"location":{"centreville":t(1990,2000),"dulles":t(2000,2006), "purcellvilee":t(2006)}})
-    matthias = g.add_labeled_node("person", "matthias", {"location":{"bremen":t(2004,2007), "baltimore":t(2007,2011), "oakland":t(2011,2014), "seattle":t(2014)}})
-    daniel = g.add_labeled_node("person", "daniel", {"location":{"spremberg":t(1982,2005), "kaiserslautern":t(2005,2009), "aachen":t(2009)}})
-    gremlin = g.add_labeled_node("software", "gremlin")
-    tinkergraph = g.add_labeled_node("software", "tinkergraph")
-
-    g.add_labeled_edge(marko, gremlin, "uses", {"skill":4})
-    g.add_labeled_edge(stephen, gremlin, "uses", {"skill":5})
-    g.add_labeled_edge(matthias, gremlin, "uses", {"skill":3})
-    g.add_labeled_edge(daniel, gremlin, "uses", {"skill":5})
-    g.add_labeled_edge(marko, tinkergraph, "uses", {"skill":5})
-    g.add_labeled_edge(stephen, tinkergraph, "uses", {"skill":4})
-    g.add_labeled_edge(matthias, tinkergraph, "uses", {"skill":3})
-    g.add_labeled_edge(daniel, tinkergraph, "uses", {"skill":3})
-    g.add_labeled_edge(gremlin, tinkergraph, "traverses")
-    g.add_labeled_edge(marko, tinkergraph, "develops", {"since":2010})
-    g.add_labeled_edge(stephen, tinkergraph, "develops", {"since":2011})
-    g.add_labeled_edge(marko, gremlin, "develops", {"since":2009})
-    g.add_labeled_edge(stephen, gremlin, "develops", {"since":2010})
-    g.add_labeled_edge(matthias, gremlin, "develops", {"since":2012})
-    return g
+        g.add_labeled_edge(marko, gremlin, "uses", {"skill":4})
+        g.add_labeled_edge(stephen, gremlin, "uses", {"skill":5})
+        g.add_labeled_edge(matthias, gremlin, "uses", {"skill":3})
+        g.add_labeled_edge(daniel, gremlin, "uses", {"skill":5})
+        g.add_labeled_edge(marko, tinkergraph, "uses", {"skill":5})
+        g.add_labeled_edge(stephen, tinkergraph, "uses", {"skill":4})
+        g.add_labeled_edge(matthias, tinkergraph, "uses", {"skill":3})
+        g.add_labeled_edge(daniel, tinkergraph, "uses", {"skill":3})
+        g.add_labeled_edge(gremlin, tinkergraph, "traverses")
+        g.add_labeled_edge(marko, tinkergraph, "develops", {"since":2010})
+        g.add_labeled_edge(stephen, tinkergraph, "develops", {"since":2011})
+        g.add_labeled_edge(marko, gremlin, "develops", {"since":2009})
+        g.add_labeled_edge(stephen, gremlin, "develops", {"since":2010})
+        g.add_labeled_edge(matthias, gremlin, "develops", {"since":2012})
+        return g
 

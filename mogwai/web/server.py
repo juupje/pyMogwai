@@ -137,6 +137,7 @@ class MogwaiSolution(InputWebSolution):
         if self.graph_label:
             with self.header_row:
                 self.graph_label.content=self.get_graph_label()
+                self.graph_label.update()
 
     def get_graph_label(self)->str:
         graph_label=f"Query {self.graph.name} graph"

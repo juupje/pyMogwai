@@ -46,7 +46,7 @@ class MogwaiWebServer(InputWebserver):
         InputWebserver.__init__(self, config=MogwaiWebServer.get_config())
         users = Users("~/.solutions/mogwai")
         self.login = Login(self, users)
-        self.example=Graphs()
+        self.examples=Graphs()
 
         @ui.page("/")
         async def home(client: Client):

@@ -3,25 +3,29 @@ Created on 2024-08-17
 
 @author: wf
 """
-import os
+
 import logging
-from typing import List, Dict
+import os
+from typing import Dict, List
+
 from mogwai.core import MogwaiGraph
-from mogwai.parser.graphml_converter import graphml_to_mogwaigraph
 from mogwai.graph_config import GraphConfig, GraphConfigs
+from mogwai.parser.graphml_converter import graphml_to_mogwaigraph
+
 
 class Graphs:
     """
     Manage MogwaiGraphs
     """
 
-    def __init__(self,
-                 config_file: str = None,
-                 lazy: bool = False,
-                 debug: bool = False):
+    def __init__(
+        self, config_file: str = None, lazy: bool = False, debug: bool = False
+    ):
         self.debug = debug
         self.logger = self.get_logger()
-        self.examples_dir = os.path.join(os.path.dirname(__file__), "..", "mogwai_examples")
+        self.examples_dir = os.path.join(
+            os.path.dirname(__file__), "..", "mogwai_examples"
+        )
         if config_file is None:
             config_file = os.path.join(self.examples_dir, "example_graph_configs.yaml")
         self.config_file = config_file
@@ -56,7 +60,7 @@ class Graphs:
             file_path,
             node_label_key=config.node_label_key,
             edge_label_key=config.edge_label_key,
-            node_name_key=config.get_node_name_key()
+            node_name_key=config.get_node_name_key(),
         )
 
     def get_names(self) -> List[str]:
@@ -95,6 +99,7 @@ class Graphs:
 
         return self.graphs[name]
 
+
 # Usage example:
 if __name__ == "__main__":
     examples = Graphs(debug=True)
@@ -103,6 +108,8 @@ if __name__ == "__main__":
     try:
         graph_name = "air-routes-latest"
         graph = examples.get(graph_name)
-        print(f"Loaded graph '{graph_name}': {len(graph.nodes)} nodes, {len(graph.edges)} edges")
+        print(
+            f"Loaded graph '{graph_name}': {len(graph.nodes)} nodes, {len(graph.edges)} edges"
+        )
     except Exception as e:
         print(f"Failed to load graph: {str(e)}")

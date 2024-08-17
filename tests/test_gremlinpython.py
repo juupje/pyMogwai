@@ -18,7 +18,6 @@ class TestFileServer(BaseTest):
             self.documents_path, "air_routes_latest.graphml"
         )
 
-
     def test_mogwai(self):
         from mogwai.core.steps.statics import has_name, out
         from mogwai.core.traversal import MogwaiGraph, MogwaiGraphTraversalSource
@@ -74,12 +73,15 @@ class TestFileServer(BaseTest):
 
     def test_gremlinpython(self):
         import warnings
+
         from gremlin_python.driver.aiohttp.transport import (
             AiohttpHTTPTransport,
             AiohttpTransport,
-            )
+        )
         from gremlin_python.driver.client import Client
-        from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
+        from gremlin_python.driver.driver_remote_connection import (
+            DriverRemoteConnection,
+        )
         from gremlin_python.process.anonymous_traversal import traversal
         from gremlin_python.process.graph_traversal import __
         from gremlin_python.process.traversal import Scope

@@ -3,15 +3,19 @@ Created on 2024-08-17
 
 @author: wf
 """
-from ngwidgets.yamlable import lod_storable
+
 from dataclasses import field
-from typing import Optional, Callable, Dict, Any
+from typing import Any, Callable, Dict, Optional
+
+from ngwidgets.yamlable import lod_storable
+
 
 @lod_storable
 class GraphConfig:
     """
     Configuration for a graph in the Examples class
     """
+
     name: str
     file_path: Optional[str] = None
     is_default: bool = False
@@ -28,7 +32,9 @@ class GraphConfig:
         else:
             raise ValueError(f"Invalid node_name_key for graph {self.name}")
 
+
 @lod_storable
 class GraphConfigs:
     """Manages a collection of GraphConfig instances"""
+
     configs: Dict[str, GraphConfig] = field(default_factory=dict)

@@ -4,7 +4,6 @@ import mogwai.core.traversal as Trav
 from mogwai.core import MogwaiGraph
 from mogwai.core.steps.flatmap_steps import out
 from mogwai.parser.filesystem import FileSystemGraph as FSG
-
 from tests.basetest import BaseTest
 
 

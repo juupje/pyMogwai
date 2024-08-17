@@ -80,6 +80,7 @@ class MogwaiSolution(InputWebSolution):
             client (Client): The client instance this context is associated with.
         """
         super().__init__(webserver, client)
+        self.examples=webserver.examples
         self.graph=None
         self.graph_label=None
         self.result_html=None

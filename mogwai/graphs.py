@@ -10,9 +10,9 @@ from mogwai.core import MogwaiGraph
 from mogwai.parser.graphml_converter import graphml_to_mogwaigraph
 from mogwai.graph_config import GraphConfig, GraphConfigs
 
-class Examples:
+class Graphs:
     """
-    Handle examples of MogwaiGraphs
+    Manage MogwaiGraphs
     """
 
     def __init__(self,
@@ -97,7 +97,7 @@ class Examples:
 
 # Usage example:
 if __name__ == "__main__":
-    examples = Examples(debug=True)
+    examples = Graphs(debug=True)
     print("Available graphs:", examples.get_names())
 
     try:

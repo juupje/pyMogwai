@@ -8,19 +8,9 @@ class TestSteps(BaseTest):
     test Steps
     """
 
-    def setUp(self):
-        from mogwai.parser import graphml_to_mogwaigraph
-
-        super().setUp()
-        self.airroutes = graphml_to_mogwaigraph(
-            f"{self.examples_path}/air-routes-latest.graphml",
-            node_label_key="labelV",
-            edge_label_key="labelE",
-            node_name_key=lambda x: (
-                x.pop("code") if x["type"] == "airport" else x.pop("desc")
-            ),
-        )
-
+    def setUp(self, debug=True, profile=True):
+        BaseTest.setUp(self, debug=debug, profile=profile)
+        self.airroutes = self.examples.get("air-routes-latest")
     def test_speed(self):
         """
         tests speed - 9119 results in 1.3 s on a 2.4 GHz 8 Core Intel Core i9

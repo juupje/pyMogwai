@@ -1,7 +1,7 @@
 import os
 
 from ngwidgets.basetest import Basetest
-from mogwai.examples import Examples
+from mogwai.graphs import Graphs
 
 class BaseTest(Basetest):
     """
@@ -10,7 +10,7 @@ class BaseTest(Basetest):
     @classmethod
     def setUpClass(cls)->None:
         super(BaseTest, cls).setUpClass()
-        cls.examples=Examples()
+        cls.examples=Graphs()
 
     def setUp(self, debug=True, profile=True):
         Basetest.setUp(self, debug=debug, profile=profile)

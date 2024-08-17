@@ -10,6 +10,7 @@ from ngwidgets.webserver import WebserverConfig
 from mogwai.version import Version
 from nicegui import Client, ui, run
 from mogwai.core import MogwaiGraph, Traversal
+from mogwai.graphs import Graphs
 from mogwai.parser import PDFGraph, powerpoint_converter
 from mogwai.parser.graphml_converter import graphml_to_mogwaigraph
 from mogwai.parser.excel_converter import EXCELGraph
@@ -45,6 +46,7 @@ class MogwaiWebServer(InputWebserver):
         InputWebserver.__init__(self, config=MogwaiWebServer.get_config())
         users = Users("~/.solutions/mogwai")
         self.login = Login(self, users)
+        self.example=Graphs()
 
         @ui.page("/")
         async def home(client: Client):
@@ -136,7 +138,7 @@ class MogwaiSolution(InputWebSolution):
             emphasize="text-h5"
             try:
                 with ui.row() as self.header_row:
-                    graph_selection=["modern","crew","air-routes","air-routes-small"]
+                    graph_selection=self.examples.get_names()
                     self.graph_selector=self.add_select(
                         "graph",
                         graph_selection,
@@ -170,13 +172,8 @@ class MogwaiSolution(InputWebSolution):
 
     def load_graph(self,file=None,name:str="modern"):
         if file is None:
-            if name=="modern":
-                graph=MogwaiGraph.modern()
-            elif name=="crew":
-                graph=MogwaiGraph.crew()
-            elif name=="air-routes":
-
-            elif name=="air-routes-small"
+            if name in self.examples.get_names():
+                graph=self.examples.get(name)
             else:
                 raise ValueError(f"invalid graph name {name}")
             graph.name=name

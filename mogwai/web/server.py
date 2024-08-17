@@ -50,12 +50,6 @@ class MogwaiWebServer(InputWebserver):
         async def home(client: Client):
             return await self.page(client, MogwaiSolution.home)
 
-        @ui.page("/parse")
-        async def parse_file(client: Client):
-            if not self.login.authenticated():
-                return RedirectResponse("/login")
-            return await self.page(client, MogwaiSolution.parse_file)
-
         @ui.page("/query")
         async def query_graph(client: Client):
             return await self.page(client, MogwaiSolution.query_graph)
@@ -69,14 +63,6 @@ class MogwaiWebServer(InputWebserver):
             if self.login.authenticated():
                 await self.login.logout()
             return RedirectResponse("/")
-
-    def authenticated(self) -> bool:
-        """
-        Check if the user is authenticated.
-        Returns:
-            True if the user is authenticated, False otherwise.
-        """
-        return self.login.authenticated()
 
 class MogwaiSolution(InputWebSolution):
     """
@@ -97,6 +83,14 @@ class MogwaiSolution(InputWebSolution):
         self.result_html=None
         self.update_graph("modern")
 
+    def authenticated(self) -> bool:
+        """
+        Check if the user is authenticated.
+        Returns:
+            True if the user is authenticated, False otherwise.
+        """
+        return self.webserver.login.authenticated()
+
     def setup_menu(self, detailed: bool = True):
         """
         setup the menu
@@ -104,7 +98,7 @@ class MogwaiSolution(InputWebSolution):
         super().setup_menu(detailed=detailed)
         ui.button(icon="menu", on_click=lambda: self.header.toggle())
         with self.header:
-            if self.webserver.authenticated():
+            if self.authenticated():
                 self.link_button("logout", "/logout", "logout", new_tab=False)
             else:
                 self.link_button("login", "/login", "login", new_tab=False)
@@ -118,15 +112,6 @@ class MogwaiSolution(InputWebSolution):
     async def home(self):
         """Provide the main content page"""
         await self.query_graph()
-
-    async def parse_file(self):
-        """File parsing page"""
-        def setup_parse():
-            ui.label("Parse File").classes('text-h4')
-            file_upload = ui.upload(label="Choose a file", multiple=False, auto_upload=True)
-            file_upload.on('upload', self.handle_upload)
-
-        await self.setup_content_div(setup_parse)
 
     async def on_graph_select(self,vce_args):
         await run.io_bound(self.update_graph,vce_args.value)
@@ -142,26 +127,38 @@ class MogwaiSolution(InputWebSolution):
             self.handle_exception(ex)
 
     def get_graph_label(self)->str:
-        self.graph_label_text=f"Query {self.graph.name} graph"
+        self.graph_label_text=f"Query Graph {self.graph.name} {len(self.graph.nodes)} nodes {len(self.graph.edges)} edges"
         return self.graph_label_text
 
     async def query_graph(self):
         """Graph querying page"""
         def setup_query():
+            emphasize="text-h5"
             try:
                 with ui.row() as self.header_row:
-                    graph_selection=["modern","crew"]
+                    graph_selection=["modern","crew","air-routes","air-routes-small"]
                     self.graph_selector=self.add_select(
                         "graph",
                         graph_selection,
                         value=self.graph_name,
                         on_change=self.on_graph_select)
+                if self.authenticated():
+                    with ui.row() as self.upload_row:
+                        ui.label("import File").classes(emphasize)
+                        file_upload = ui.upload(label="Choose a file", multiple=False, auto_upload=True)
+                        file_upload.on('upload', self.handle_upload)
+
                 if self.graph:
                     self.get_graph_label()
-                    self.graph_label=ui.label().classes('text-h5')
+                    self.graph_label=ui.label().classes(emphasize)
                     self.graph_label.bind_text_from(self, 'graph_label_text')
-                    query = ui.input(label="Enter Gremlin query")
-                    ui.button("Run Query", on_click=lambda: self.on_run_query(query.value))
+                    self.query_text_area = (
+                        ui.textarea("Enter Gremlin Query")
+                        .props("clearable")
+                        .props("rows=5;cols=80")
+                        .bind_value_to(self, "query")
+                    )
+                    ui.button("Run Query", on_click=lambda: self.on_run_query())
                 else:
                     ui.label("No graph loaded. Please select a graph first.")
                 with ui.row() as self.result_row:
@@ -177,6 +174,9 @@ class MogwaiSolution(InputWebSolution):
                 graph=MogwaiGraph.modern()
             elif name=="crew":
                 graph=MogwaiGraph.crew()
+            elif name=="air-routes":
+
+            elif name=="air-routes-small"
             else:
                 raise ValueError(f"invalid graph name {name}")
             graph.name=name
@@ -208,14 +208,15 @@ class MogwaiSolution(InputWebSolution):
 
         if self.graph:
             ui.notify("File parsed successfully", type="positive")
-            ui.label(f"Imported a graph with {len(self.graph.nodes)} nodes and {len(self.graph.edges)} edges.")
 
-    def on_run_query(self, query:str):
+    def on_run_query(self, query:str=None):
         """Run a Gremlin query on the graph"""
         if not self.graph:
             ui.notify("No graph loaded. Please select a graph first.", type="warning")
             return
         try:
+            if query is None:
+                query=self.query
             query_result=self.run_query(query)
             self.display_result(query_result)
         except Exception as e:
@@ -233,7 +234,9 @@ class MogwaiSolution(InputWebSolution):
     def display_result(self,query_result:QueryResult):
         if self.result_html:
             with self.result_row:
-                markup=f"{len(query_result.result)} elements:<br>"
+                count=len(query_result.result)
+                plural_postfix="s" if count>1 else ""
+                markup=f"{count} element{plural_postfix}:<br>"
                 for i,traverser in enumerate(query_result.result):
                     markup+=f"{i+1}:{str(traverser)}<br>"
                 self.result_html.content=markup

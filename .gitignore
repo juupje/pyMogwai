@@ -111,3 +111,8 @@ tests/queries.txt
 docs/
 # Eclipse workspace
 .settings
+
+# nicegui
+.nicegui
+# Mac
+.DS_Store

@@ -15,19 +15,17 @@ class EXCELGraph(MogwaiGraph):
                 raise FileNotFoundError(f"No such file or directory: '{file:s}'")
             self.file = file
             name = name or os.path.basename(file)
-            self.root = self.add_labeled_node(label=EXCELGraph.LABEL, name=name, properties=get_file_stats(self.file))
+            self.root = self.add_labeled_node(label=EXCELGraph.LABEL, name=name, **get_file_stats(self.file))
             self.construct()
 
     def construct(self):
         dic = excel_to_dic(self.file)
         sheets = dic.pop("sheets")
-        self.nodes[self.root]["properties"].update({"metadata": dic,
+        self.nodes[self.root].update({"metadata": dic,
                                 "number_of_sheets": len(sheets)})
         for sheet in sheets:
-            node = self.add_labeled_node(label="EXCELSheet", name=sheet["name"], properties=sheet)
+            node = self.add_labeled_node(label="EXCELSheet", name=sheet.pop('name'), **sheet)
             self.add_labeled_edge(self.root, node, "HAS_SHEET")
-        
-        
 
 def excel_to_dic(path:str) -> dict:
     workbook = load_workbook(path)

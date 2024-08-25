@@ -28,7 +28,7 @@ def get_subgraph(file:str) -> MogwaiGraph:
         
 
 IGNORED_DIRECTORIES = [".git", "__pycache__"]       
-FILETYPES_TO_UNFOLD = (".pdf", ".pptx", ".xlsx")    #TODO ".rdf", ".xml"
+FILETYPES_TO_UNFOLD = (".pdf", ".pptx", ".xlsx")
 
 class FileSystemGraph(MogwaiGraph):
 
@@ -44,14 +44,14 @@ class FileSystemGraph(MogwaiGraph):
             if current_path.endswith(FILETYPES_TO_UNFOLD):
                 if(parent_node is None): raise ValueError("A filesystem graph can not be just one file")
                 subgraph = get_subgraph(current_path)
-                self.merge_subgraph(subgraph, parent_node, subgraph.root, "has_file")  
+                self.merge_subgraph(subgraph, parent_node, subgraph.root, "HAS_FILE")  
             else:
-                node = self.add_labeled_node(name=os.path.basename(current_path), properties=get_file_stats(current_path), label="File")
-                if(parent_node is not None): self.add_labeled_edge(parent_node, node, "has_file")
+                node = self.add_labeled_node(name=os.path.basename(current_path), **get_file_stats(current_path), label="File")
+                if(parent_node is not None): self.add_labeled_edge(parent_node, node, "HAS_FILE")
 
         elif os.path.isdir(current_path):
-            current_node = self.add_labeled_node(name=os.path.basename(current_path), properties={}, label="Directory")
-            if(parent_node is not None): self.add_labeled_edge(parent_node, current_node, "has_folder")
+            current_node = self.add_labeled_node(name=os.path.basename(current_path), label="Directory")
+            if(parent_node is not None): self.add_labeled_edge(parent_node, current_node, "HAS_FOLDER")
             for item in os.listdir(current_path):
                 if (not item in IGNORED_DIRECTORIES):
                     item_path = os.path.join(current_path, item)

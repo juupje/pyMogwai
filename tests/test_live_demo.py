@@ -5,7 +5,7 @@ from mogwai.core.traversal import MogwaiGraphTraversalSource
 from .basetest import BaseTest
 
 
-class TestSteps(BaseTest):
+class TestLiveDemo(BaseTest):
     def setUp(self):
         from mogwai.parser import graphml_to_mogwaigraph
 
@@ -98,7 +98,7 @@ class TestSteps(BaseTest):
             self.g.V()
             .has_label("airport")
             .within(
-                ["properties", "city"],
+                "city",
                 ["Brussels", "Maastricht", "Aachen", "Dusseldorf"],
             )
             .as_("start")
@@ -127,7 +127,7 @@ class TestSteps(BaseTest):
             self.g.V()
             .has_label("airport")
             .within(
-                ["properties", "city"],
+                "city",
                 ["Brussels", "Maastricht", "Aachen", "Dusseldorf"],
             )
             .as_("start")

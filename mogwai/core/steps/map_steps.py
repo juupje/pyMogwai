@@ -30,7 +30,6 @@ class Key(MapStep):
 class Values(MapStep):
     def __init__(self, traversal:Traversal, *keys:str|List[str]):
         super().__init__(traversal=traversal)
-        keys = [["properties", *key] if type(key) is list else (['properties', key] if key!='name' else key) for key in keys]
         self.indexers = [get_dict_indexer(key, _NA) for key in keys]
         self.keys = [(tuple(key) if type(key) is list else key) for key in keys]
         if len(keys)==0:
@@ -85,7 +84,6 @@ class Values(MapStep):
 class Properties(MapStep):
     def __init__(self, traversal:Traversal, *keys:str|List[str]):
         super().__init__(traversal=traversal)
-        keys = [["properties", *key] if type(key) is list else (['properties', key] if key!='name' else key) for key in keys]
         self.indexers = [get_dict_indexer(key, _NA) for key in keys]
         self.keys = [(tuple(key) if type(key) is list else key) for key in keys]
         if len(keys)==0:

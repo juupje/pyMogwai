@@ -139,9 +139,9 @@ class TestTraverser(BaseTest):
         query = g.V().has_label("Person").property("City", "Aachen").run()
         for node in g.V().has_label("Person").to_list().run():
             data = self.modern.nodes(data=True)[node]
-            print(f"{data['name']} -> City: {data['properties']['City']}")
+            print(f"{data['name']} -> City: {data['City']}")
             self.assertEqual(
-                data["properties"]["City"],
+                data["City"],
                 "Aachen",
                 "SideEffect did not set city to Aachen",
             )

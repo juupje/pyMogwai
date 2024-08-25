@@ -19,7 +19,7 @@ class TestSteps(BaseTest):
         query = (
             g.V()
             .has_label("Directory")
-            .filter_(out("has_file").has_label("PDFFile"))
+            .filter_(out("HAS_FILE").has_label("PDFFile"))
             .to_list(by="name")
         )
         print("Query:", query.print_query())
@@ -86,7 +86,7 @@ class TestSteps(BaseTest):
     def test_local(self):
         g = Trav.MogwaiGraphTraversalSource(self.crew)
         query = (
-            g.V().has_label("person").local(out("develops").limit(1).name()).to_list()
+            g.V().has_label("Person").local(out("develops").limit(1).name()).to_list()
         )
         print("Query:", query.print_query())
         res = query.run()

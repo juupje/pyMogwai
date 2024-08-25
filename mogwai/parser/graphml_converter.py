@@ -51,10 +51,10 @@ def graphml_to_mogwaigraph(file:str, node_label_key:str|Callable[[dict],str], no
     for node, data in gml.nodes(data=True):
         if(include_id):
             data[include_id] = node
-        assigned_id = g.add_labeled_node(label=node_label_func(data), name=node_name_func(data), properties=data)
+        assigned_id = g.add_labeled_node(label=node_label_func(data), name=node_name_func(data), **data)
         node_to_id_map[node] = assigned_id
     for node1, node2, data in gml.edges(data=True):
-        g.add_labeled_edge(srcId=node_to_id_map[node1] , destId=node_to_id_map[node2], edgeLabel=edge_label_func(data), properties=data)
+        g.add_labeled_edge(srcId=node_to_id_map[node1] , destId=node_to_id_map[node2], edgeLabel=edge_label_func(data), **data)
     
     missing_edge_count = next(missing_edge_count)
     missing_name_count = next(missing_name_count)

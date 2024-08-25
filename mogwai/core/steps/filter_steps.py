@@ -351,11 +351,6 @@ def has_name(name: str):
     return Has(None, "name", value=name)
 
 @as_traversal_function
-def has_property(key: str|List[str], value:Any=None):
-    key = (["properties"]+key) if type(key) is list else ["properties", key]
-    return Has(None,key, value=value)
-
-@as_traversal_function
 def has_label(label: str):
     return Contains(None, "labels", value=label)
 

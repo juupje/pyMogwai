@@ -79,10 +79,6 @@ class Traversal:
     def has_name(self, name: str) -> 'Traversal':
         return self.has("name", name)
 
-    def has_property(self, property: str, value: Any=None) -> 'Traversal':
-        keys = ["properties"] + property if type(property) is list else ["properties", property]
-        return self.has(keys, value)
-
     def has_label(self, label: str|Set[str]) -> 'Traversal':
         if isinstance(label, set):
             from .steps.filter_steps import ContainsAll
@@ -179,20 +175,6 @@ class Traversal:
     def label(self) -> 'Traversal':
         return self.values("labels")
 
-    '''
-    def properties(self, *keys:str|List[str]) -> 'Traversal':
-        # TODO: change this to return Property's
-        from .steps.map_steps import Value
-        for i in range(len(keys)):
-            if keys[i] is None:
-                keys = "properties"
-            elif type(keys[i]) is list:
-                keys[i] = ["properties"] + keys[i]
-            else:
-                keys[i] = ["properties", keys[i]]
-        self._add_step(Value(self, keys))
-        return self
-    '''
     def properties(self, *keys:str|List[str]) -> 'Traversal':
         from .steps.map_steps import Properties
         self._add_step(Properties(self, *keys))
@@ -396,10 +378,7 @@ class Traversal:
             if isinstance(key, AnonymousTraversal):
                 if not prev_step.supports_anonymous_by:
                     raise QueryError(f"Step `{prev_step.print_query()}` does not support anonymous traversals as by-modulations.")
-            elif type(key) is str:
-                if key != "name" and key != "labels":
-                    key = (["properties"] + key) if type(key) is list else ["properties", key]
-            else:
+            elif type(key) is not str:
                 raise QueryError("Invalid key type for by-modulation")
 
             if prev_step.supports_multiple_by:
@@ -421,10 +400,14 @@ class Traversal:
     def property(self, key:str|List[str], value:Any) -> 'Traversal':
         from .steps.base_steps import SideEffectStep
         from mogwai.utils import get_dict_indexer
-        keys = ['properties'] + (key if type(key) is list else [key])
-        indexer =  get_dict_indexer(keys[:-1])
+        #keys = ['properties'] + (key if type(key) is list else [key])
+        if isinstance(key, (tuple, list)):
+            indexer = get_dict_indexer(key[:-1])
+            key = key[-1]
+        else:
+            indexer = lambda x: x
         def effect(t:'Traverser'):
-            indexer(self._get_element(t))[keys[-1]] = value
+            indexer(self._get_element(t))[key] = value
         self._add_step(SideEffectStep(self, side_effect=effect))
         return self
 

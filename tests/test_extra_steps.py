@@ -119,7 +119,8 @@ class TestSteps(BaseTest):
         print("Query:", query.print_query())
         res = query.run()
         print("Result:", res)
-        self.assertEqual(res, {'labels': {'Person'}, 'name': 'marko', 'age': 29})
+        self.assertTrue(len(res) == 1, "Query should have returned only one result")
+        self.assertEqual(res[0], {'labels': {'Person'}, 'name': 'marko', 'age': 29})
 
 if __name__ == "__main__":
     import unittest

@@ -113,6 +113,13 @@ class TestSteps(BaseTest):
         print("Result:", res)
         self.assertTrue(len(res) == 1, "Incorrect query result!")
 
+    def test_element_map(self):
+        g = Trav.MogwaiGraphTraversalSource(self.modern)
+        query = g.V(0).element_map().to_list()
+        print("Query:", query.print_query())
+        res = query.run()
+        print("Result:", res)
+        self.assertEqual(res, {'labels': {'Person'}, 'name': 'marko', 'age': 29})
 
 if __name__ == "__main__":
     import unittest

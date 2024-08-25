@@ -1,5 +1,5 @@
 from .base_steps import FilterStep
-from typing import List, Set, Any, Generator, Iterable
+from typing import List, Set, Tuple, Any, Generator, Iterable
 from mogwai.core import Traversal, AnonymousTraversal
 from mogwai.core import Traverser
 from mogwai.core.traverser import Value, Property
@@ -90,6 +90,17 @@ class Has(FilterStep):
                 self._filter = lambda t: self.value(indexer(self.traversal._get_element(t)))
             else:
                 self._filter = lambda t: indexer(self.traversal._get_element(t)) == self.value
+
+class HasWithin(FilterStep):
+    """
+    Similar to `Has`, but with multiple options for the value
+    """
+    def __init__(self, traversal:Traversal, key:str|List[str], valueOptions:List|Tuple):
+        super().__init__(traversal)
+        self.key = key
+        self.valueOptions = valueOptions
+        indexer = (lambda t: t.get) if key=="id" else get_dict_indexer(key, _NA)
+        self._filter = lambda t: indexer(self.traversal._get_element(t)) in self.valueOptions
 
 class HasNot(FilterStep):
     def __init__(self, traversal:Traversal, key:str|List[str]):

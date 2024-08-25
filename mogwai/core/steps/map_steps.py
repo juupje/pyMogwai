@@ -144,7 +144,39 @@ class Properties(MapStep):
 
     def __call__(self, traversers: Iterable[Traverser] | Iterable[Property]) -> Iterable[Property]:
         return (x for t in traversers for x in self._map(t))
-
+    
+class ElementMap(MapStep):
+    def __init__(self, traversal:Traversal, keys:str|List[str]|None=None):
+        super().__init__(traversal=traversal)
+        if keys is not None:
+            if len(keys)==1: keys = keys[0]
+            if type(keys) is list:
+                indexers = [get_dict_indexer(key, _NA) for key in keys]
+                def _map(t:Traverser|Any) -> dict:
+                    if type(t)==Traverser:
+                        obj = self.traversal._get_element(t)
+                        res = {key: x for key, index in zip(keys, indexers) if (x:=index(obj))!=_NA}
+                        return res if len(res)>0 else None
+                    else:
+                        raise GraphTraversalError("Cannot map non-traverser objects to elements.")
+            else:
+                indexer = get_dict_indexer(keys, _NA)
+                def _map(t:Traverser|Any) -> dict:
+                    if type(t)==Traverser:
+                        obj = self.traversal._get_element(t)
+                        return {keys: x} if (x:=indexer(obj))!=_NA else None
+                    else:
+                        raise GraphTraversalError("Cannot map non-traverser objects to elements.")
+        else:
+            def _map(t:Traverser|Property|Any) -> dict:
+                if type(t)==Traverser:
+                    return self.traversal._get_element(t, data=True)
+                elif type(t)==Property:
+                    return {"key": t.key, "value": t.value}
+                else:
+                    raise GraphTraversalError("Cannot map non-traverser objects to elements.")
+        self._map = _map    
+            
 class Select(MapStep):
     def __init__(self, traversal:Traversal, keys:str|List[str], by:List[str]|None=None, **kwargs):
         flags = kwargs.pop('flags', 0)

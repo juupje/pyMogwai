@@ -41,6 +41,12 @@ class Traversal:
         return self
 
     def has(self, *args) -> 'Traversal':
+        """
+        Filter traversers based on whether they have the given properties.
+        * If one argument is given, it is assumed to be a key, and the step checks if a property with that key exists, regardless of its value.
+        * If two arguments are given, it is assumed to be a key and a value, and the step checks if a property with that key exists and has the given value.
+        * If three arguments are given, the first argument is assumed to be a label, and the step checks if a property with the given key and value exists on an element with that label. 
+        """
         #if `key` is a list, like ['a', 'b'], the value will be compared to data['a']['b']
         from .steps.filter_steps import Has
         if len(args)==1:
@@ -76,8 +82,15 @@ class Traversal:
         self._add_step(HasId(self, *ids))
         return self
 
-    def has_name(self, name: str) -> 'Traversal':
-        return self.has("name", name)
+    def has_name(self, *name: str) -> 'Traversal':
+        if len(name) == 0:
+            raise QueryError("No name provided for `has_name`")
+        elif len(name) == 1:
+            return self.has("name", name[0])
+        elif len(name) > 1:
+            from .steps.filter_steps import HasWithin
+            self._add_step(HasWithin(self, "name", name))
+            return self
 
     def has_label(self, label: str|Set[str]) -> 'Traversal':
         if isinstance(label, set):
@@ -218,6 +231,15 @@ class Traversal:
     def mean(self, scope:Scope=Scope.global_) -> 'Traversal':
         from .steps.map_steps import Aggregate
         self._add_step(Aggregate(self, "mean", scope))
+        return self
+
+    def element_map(self, *keys:str) -> 'Traversal':
+        from .steps.map_steps import ElementMap
+        if len(keys) == 1:
+            keys = keys[0]
+        elif len(keys)==0:
+            keys=None
+        self._add_step(ElementMap(self, keys))
         return self
 
     ## ===== FLATMAP STEPS ======

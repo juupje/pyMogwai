@@ -1,10 +1,5 @@
 implement the following steps:
 - fold
-- hasLabel with multiple IDs
-- hasName with multiple IDs
-- predicates
-    - between
-    - within
+- unfold
 - valueMap
-- properties should not return 'properties' itself
-- elementMap
+- elementMap properly

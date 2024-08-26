@@ -27,7 +27,7 @@ class TestGraphml(BaseTest):
         )
         print(g.nodes(data=True))
         self.assertTrue(
-            g.nodes(data=True)[0]["properties"]["id"] == "n0",
+            g.nodes(data=True)[0]["id"] == "n0",
             "Incorrect import of graphml node id",
         )
         self.assertTrue(

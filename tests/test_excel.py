@@ -5,7 +5,7 @@ from mogwai.parser.excel_converter import EXCELGraph
 from .basetest import BaseTest
 
 
-class TestGraph(BaseTest):
+class TestExcel(BaseTest):
     def setUp(self):
         super().setUp()
         # Initialize a sample file system structure for testing
@@ -16,10 +16,10 @@ class TestGraph(BaseTest):
         nodes = graph.get_nodes("EXCELFile", "test_excel.xlsx")
         self.assertTrue(len(nodes) == 1, "Incorrect number of test_excel.xlsx nodes")
         self.assertTrue(
-            nodes[0][1]["properties"]["metadata"]["title"] == "BspTitel", "Title wrong"
+            nodes[0][1]["metadata"]["title"] == "BspTitel", "Title wrong"
         )
         self.assertTrue(
-            graph.get_nodes("EXCELSheet", "sheet1")[0][1]["properties"]["column2"]["2"]
+            graph.get_nodes("EXCELSheet", "sheet1")[0][1]["column2"]["2"]
             == "b4",
             "Wrong column element",
         )

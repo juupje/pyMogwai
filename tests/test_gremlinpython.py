@@ -8,7 +8,7 @@ from .basetest import BaseTest
 
 
 @unittest.skip("Skipping tests")
-class TestFileServer(BaseTest):
+class TestGremlinPython(BaseTest):
     def setUp(self):
         super().setUp()
         self.air_routes_small = os.path.join(

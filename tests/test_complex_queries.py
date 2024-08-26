@@ -5,7 +5,7 @@ from mogwai.core.traversal import MogwaiGraphTraversalSource
 from .basetest import BaseTest
 
 
-class TestSteps(BaseTest):
+class TestQueries(BaseTest):
     def setUp(self):
         super().setUp()
 

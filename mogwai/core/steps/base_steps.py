@@ -13,6 +13,8 @@ class Step:
     SUPPORTS_BY = 1<<3
     SUPPORTS_ANON_BY = 1<<4 | SUPPORTS_BY
     SUPPORTS_MULTIPLE_BY = 1<<5 | SUPPORTS_BY
+    SUPPORTS_FROMTO = 1<<6
+
     def __init__(self, traversal:'Traversal', flags:int=0):
         self.traversal = traversal
         self.flags = flags
@@ -35,6 +37,9 @@ class Step:
     @property
     def supports_multiple_by(self):
         return (self.flags & Step.SUPPORTS_MULTIPLE_BY)==Step.SUPPORTS_MULTIPLE_BY
+    @property
+    def supports_fromto(self):
+        return (self.flags & Step.SUPPORTS_FROMTO)==Step.SUPPORTS_FROMTO
 
     @abstractmethod
     def __call__(self, traversers: Iterable['Traverser']) -> Iterable['Traverser']:

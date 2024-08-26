@@ -30,7 +30,6 @@ class Key(MapStep):
 class Values(MapStep):
     def __init__(self, traversal:Traversal, *keys:str|List[str]):
         super().__init__(traversal=traversal)
-        keys = [["properties", *key] if type(key) is list else (['properties', key] if key!='name' else key) for key in keys]
         self.indexers = [get_dict_indexer(key, _NA) for key in keys]
         self.keys = [(tuple(key) if type(key) is list else key) for key in keys]
         if len(keys)==0:
@@ -39,7 +38,8 @@ class Values(MapStep):
                 #First, we need to discover the keys
                 if type(t)==Traverser:
                     obj = self.traversal._get_element(t)
-                    keys = ['name'] + [['properties', key] for key in obj['properties'].keys()]
+                    keys = set(obj.keys())
+                    keys.remove("labels")
                 else:
                     obj = t.val
                     if isinstance(obj, dict):
@@ -85,7 +85,6 @@ class Values(MapStep):
 class Properties(MapStep):
     def __init__(self, traversal:Traversal, *keys:str|List[str]):
         super().__init__(traversal=traversal)
-        keys = [["properties", *key] if type(key) is list else (['properties', key] if key!='name' else key) for key in keys]
         self.indexers = [get_dict_indexer(key, _NA) for key in keys]
         self.keys = [(tuple(key) if type(key) is list else key) for key in keys]
         if len(keys)==0:
@@ -94,13 +93,14 @@ class Properties(MapStep):
                 #First, we need to discover the keys
                 if type(t)==Traverser:
                     obj = self.traversal._get_element(t)
-                    keys = ['name'] + [['properties', key] for key in obj['properties'].keys()]
+                    keys = set(obj.keys())
+                    keys.remove("labels")
                 else:
                     obj = t.val
                     if isinstance(obj, dict):
                         keys = obj.keys()
                     else:
-                        return
+                        return None
                 indexers = [get_dict_indexer(key, _NA) for key in keys]
                 keys = [(tuple(key) if type(key) is list else key) for key in keys]
                 for i in range(len(keys)):
@@ -146,7 +146,39 @@ class Properties(MapStep):
 
     def __call__(self, traversers: Iterable[Traverser] | Iterable[Property]) -> Iterable[Property]:
         return (x for t in traversers for x in self._map(t))
-
+    
+class ElementMap(MapStep):
+    def __init__(self, traversal:Traversal, keys:str|List[str]|None=None):
+        super().__init__(traversal=traversal)
+        if keys is not None:
+            if len(keys)==1: keys = keys[0]
+            if type(keys) is list:
+                indexers = [get_dict_indexer(key, _NA) for key in keys]
+                def _map(t:Traverser|Any) -> dict:
+                    if type(t)==Traverser:
+                        obj = self.traversal._get_element(t)
+                        res = {key: x for key, index in zip(keys, indexers) if (x:=index(obj))!=_NA}
+                        return res if len(res)>0 else None
+                    else:
+                        raise GraphTraversalError("Cannot map non-traverser objects to elements.")
+            else:
+                indexer = get_dict_indexer(keys, _NA)
+                def _map(t:Traverser|Any) -> dict:
+                    if type(t)==Traverser:
+                        obj = self.traversal._get_element(t)
+                        return {keys: x} if (x:=indexer(obj))!=_NA else None
+                    else:
+                        raise GraphTraversalError("Cannot map non-traverser objects to elements.")
+        else:
+            def _map(t:Traverser|Property|Any) -> dict:
+                if type(t)==Traverser:
+                    return self.traversal._get_element(t, data=True)
+                elif type(t)==Property:
+                    return {"key": t.key, "value": t.value}
+                else:
+                    raise GraphTraversalError("Cannot map non-traverser objects to elements.")
+        self._map = _map    
+            
 class Select(MapStep):
     def __init__(self, traversal:Traversal, keys:str|List[str], by:List[str]|None=None, **kwargs):
         flags = kwargs.pop('flags', 0)
@@ -416,6 +448,14 @@ class Aggregate(MapStep):
                         return t.set_value(sum(t.val)/len(t.val))
             self._map = _map
             return super().__call__(traversers)
+
+@as_traversal_function
+def element_map(*keys:str) -> 'Traversal':
+    if len(keys) == 1:
+        keys = keys[0]
+    elif len(keys)==0:
+        keys=None
+    return ElementMap(None, keys)
 
 @as_traversal_function
 def value():

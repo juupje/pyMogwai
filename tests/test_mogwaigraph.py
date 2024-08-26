@@ -6,7 +6,7 @@ from mogwai.core.mogwaigraph import MogwaiGraph
 from .basetest import BaseTest
 
 
-class TestNetworkX(BaseTest):
+class TestMogwaiGraph(BaseTest):
     def setUp(self):
         super().setUp()
         self.G = MogwaiGraph()

@@ -116,3 +116,6 @@ docs/
 .nicegui
 # Mac
 .DS_Store
+
+
+UB-10ML.ipynb

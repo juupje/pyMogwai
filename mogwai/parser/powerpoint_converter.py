@@ -25,7 +25,7 @@ class PPGraph(MogwaiGraph):
                 raise FileNotFoundError(f"No such file or directory: '{file:s}'")
             self.file = file
             name = name or os.path.basename(file)
-            self.root = self.add_labeled_node(label=PPGraph.LABEL, name=name, properties=get_file_stats(self.file))
+            self.root = self.add_labeled_node(label=PPGraph.LABEL, name=name, **get_file_stats(self.file))
             self.construct()
 
     def construct(self):
@@ -33,11 +33,18 @@ class PPGraph(MogwaiGraph):
         meta_dict = {"titel": dic["title"],
                      "author": dic["author"],
                      "created": dic["created"]}     
-        self.nodes[self.root]["properties"].update({"metadata": meta_dict,
+        self.nodes[self.root].update({"metadata": meta_dict,
                                 "number_of_slides": len(dic["slides"])})
         
         for slide in dic["slides"]:
-            node = self.add_labeled_node(label="PPPage", name="page" + str(slide["page"]), properties=slide)
+            if 'name' in slide:
+                name = slide['name']
+                if len(name) == 0:
+                    name = "page" + str(slide["page"])
+                del slide['name']
+            else:
+                name = "page" + str(slide["page"])
+            node = self.add_labeled_node(label="PPPage", name=name, **slide)
             self.add_labeled_edge(self.root, node, "HAS_PAGE")
 
     

@@ -45,7 +45,7 @@ def query_grempy_Lax(g:GraphTraversalSource):
 def query_mogwai_furthest(g:MogwaiGraphTraversalSource):
     from mogwai.core.steps.statics import select
     from gremlin_python.process.graph_traversal import __
-    res = g.V().has_label("airport").within(["properties","city"], ["Brussels", "Maastricht", "Aachen", "Dusseldorf"]).as_('start')\
+    res = g.V().has_label("airport").within("city", ["Brussels", "Maastricht", "Aachen", "Dusseldorf"]).as_('start')\
         .outE("route").as_("e").inV().in_("contains").has_label("country").as_('dest')\
         .order(desc=True).by(select('e').properties('dist'))\
         .limit(5).select('start', 'dest').by('desc').to_list()

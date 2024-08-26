@@ -3,7 +3,7 @@ from mogwai.core import Traversal, AnonymousTraversal
 from typing import Iterable
 from mogwai.core.traverser import Traverser, Value
 from uuid import uuid4
-from ..exceptions import GraphTraversalError
+from ..exceptions import GraphTraversalError, QueryError
 from mogwai.decorators import as_traversal_function, with_call_order
 from mogwai.utils import ensure_is_list, ensure_is_set
 from typing import Tuple, Set
@@ -157,6 +157,24 @@ class Branch(BranchStep):
         return self.__class__.__name__ + f"({self.branchFunc.print_query()}: " + "{" \
             + ", ".join((f"{k}: {option}" for k, option in options_str.items())) + "})"
 
+class Union(BranchStep):
+    def __init__(self, traversal:Traversal, *traversals:AnonymousTraversal):
+        super().__init__(traversal=traversal, flags=Union.NEEDS_PATH if any(t.needs_path for t in traversals) else 0)
+        if len(traversals)<1:
+            raise QueryError("Union requires at least 1 traversal.")
+        self.traversals = traversals
+
+    def build(self):
+        for t in self.traversals:
+            t._build(self.traversal)
+    
+    def __call__(self, traversers:Iterable[Traverser]) -> Iterable[Traverser]:
+        #Isn't generator comprehension beautiful?
+        return (t for trav in traversers for traversal in self.traversals for t in traversal([trav]))
+
+    def print_query(self) -> str:
+        return f"{self.__class__.__name__}(" + ", ".join((t.print_query() for t in self.traversals)) + ")"
+
 class Local(BranchStep):
     def __init__(self, traversal:Traversal, localTrav:AnonymousTraversal):
         super().__init__(traversal=traversal, flags=Local.NEEDS_PATH if localTrav.needs_path else 0)
@@ -182,3 +200,7 @@ def repeat(do:'AnonymousTraversal', times:int=None, until:'AnonymousTraversal|No
 @as_traversal_function
 def branch(branchFunc:'AnonymousTraversal'):
     return Branch(None, branchFunc)
+
+@as_traversal_function
+def union(*traversals:AnonymousTraversal):
+    return Union(None, *traversals)

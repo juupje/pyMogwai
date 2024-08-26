@@ -450,6 +450,14 @@ class Aggregate(MapStep):
             return super().__call__(traversers)
 
 @as_traversal_function
+def element_map(*keys:str) -> 'Traversal':
+    if len(keys) == 1:
+        keys = keys[0]
+    elif len(keys)==0:
+        keys=None
+    return ElementMap(None, keys)
+
+@as_traversal_function
 def value():
     return Value(None)
 

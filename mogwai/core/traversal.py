@@ -2,7 +2,7 @@ from typing import Any, List, Set, Tuple, Callable, Iterable, TYPE_CHECKING
 from .mogwaigraph import MogwaiGraph
 from mogwai.core.traverser import Traverser
 from mogwai.core.steps.scope import Scope
-from mogwai.decorators import with_call_order
+from mogwai.decorators import with_call_order, add_camel_case_methods
 from .exceptions import QueryError
 from mogwai.config import DEFAULT_ITERATION_DEPTH
 from mogwai.config import USE_MULTIPROCESSING
@@ -11,8 +11,7 @@ from .steps.base_steps import Step
 import logging
 logger = logging.getLogger("Mogwai")
 
-
-
+@add_camel_case_methods
 class Traversal:
     def __init__(self, source:'MogwaiGraphTraversalSource', start:'Step', optimize:bool=True, eager:bool=False, query_verify:bool=False, use_mp:bool=False):
         if start is None:

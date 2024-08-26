@@ -38,7 +38,8 @@ class Values(MapStep):
                 #First, we need to discover the keys
                 if type(t)==Traverser:
                     obj = self.traversal._get_element(t)
-                    keys = ['name'] + [['properties', key] for key in obj['properties'].keys()]
+                    keys = set(obj.keys())
+                    keys.remove("labels")
                 else:
                     obj = t.val
                     if isinstance(obj, dict):
@@ -92,13 +93,14 @@ class Properties(MapStep):
                 #First, we need to discover the keys
                 if type(t)==Traverser:
                     obj = self.traversal._get_element(t)
-                    keys = ['name'] + [['properties', key] for key in obj['properties'].keys()]
+                    keys = set(obj.keys())
+                    keys.remove("labels")
                 else:
                     obj = t.val
                     if isinstance(obj, dict):
                         keys = obj.keys()
                     else:
-                        return
+                        return None
                 indexers = [get_dict_indexer(key, _NA) for key in keys]
                 keys = [(tuple(key) if type(key) is list else key) for key in keys]
                 for i in range(len(keys)):

@@ -325,6 +325,11 @@ class Traversal:
             raise TypeError("Branch is only allowed to be given MapSteps")
         self._add_step(Branch(self,branchFunc))
         return self
+    
+    def union(self, *traversals:'AnonymousTraversal') -> 'Traversal':
+        from .steps.branch_steps import Union
+        self._add_step(Union(self, *traversals))
+        return self
 
     ## ===== MODULATION STEPS ======
     def option(self,branchKey,OptionStep:'AnonymousTraversal') -> 'Traversal':

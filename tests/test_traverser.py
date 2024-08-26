@@ -77,7 +77,6 @@ class TestTraverser(BaseTest):
         res2 = query2.run()
         self.assertEqual(set(res2), set(res), "Query result incorrect")
 
-    @unittest.skip("needs fix")  # does not works as of 2024-08-15
     def test_cache_and_select(self):
         g = Trav.MogwaiGraphTraversalSource(self.modern)
         query = g.V().out().as_("a").out().select("a", by="name").to_list()

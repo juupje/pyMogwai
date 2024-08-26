@@ -1,9 +1,6 @@
 import unittest
-
 from mogwai.core.traversal import MogwaiGraphTraversalSource
-
 from .basetest import BaseTest
-
 
 class TestLiveDemo(BaseTest):
     def setUp(self):
@@ -90,7 +87,6 @@ class TestLiveDemo(BaseTest):
         print("Result:", res)
         self.assertEqual(res[0], ["FRA", "Argentina", 7141], "Incorrect result")
 
-    @unittest.skip  # does not work as of 2024-08-15
     def test_from_nearby_airports(self):
         from mogwai.core.steps.statics import select
 
@@ -104,36 +100,7 @@ class TestLiveDemo(BaseTest):
             .as_("start")
             .outE("route")
             .as_("e")
-            .outV()
-            .in_("contains")
-            .has_label("country")
-            .as_("dest")
-            .order(desc=True)
-            .by(select("e").values("dist"))
-            .limit(5)
-            .select("start", "dest")
-            .to_list()
-            .by("name")
-        )
-        print("Query:", query.print_query())
-        res = query.run()
-        print("Result:", res)
-
-    @unittest.skip  # does not work as of 2024-08-15
-    def test_from_nearby_airports2(self):
-        from mogwai.core.steps.statics import select
-
-        query = (
-            self.g.V()
-            .has_label("airport")
-            .within(
-                "city",
-                ["Brussels", "Maastricht", "Aachen", "Dusseldorf"],
-            )
-            .as_("start")
-            .outE("route")
-            .as_("e")
-            .outV()
+            .inV()
             .in_("contains")
             .has_label("country")
             .as_("dest")
@@ -156,7 +123,7 @@ class TestLiveDemo(BaseTest):
         query = (
             g.V()
             .has_label("airport")
-            .has_property("city", "Maastricht")
+            .has("city", "Maastricht")
             .as_("start")
             .repeat(
                 outE("route")

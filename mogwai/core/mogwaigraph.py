@@ -13,7 +13,7 @@ class MogwaiGraph (networkx.DiGraph):
     def add_labeled_node(self,label:set|str, name:str, properties:dict=None, **kwargs):
         #we can only insert a node by hashable value and as names and ids
         #can occur multiple times we use random values
-        label = label if isinstance(label, set) else {label}
+        label = label if isinstance(label, set) else (set(label) if isinstance(label, (list,tuple)) else {label})
         nodeID = next(self.counter)
         properties = properties or {}
         properties.update(kwargs)

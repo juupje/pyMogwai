@@ -417,7 +417,33 @@ class Traversal:
         else:
             raise QueryError(f"Step `{prev_step.print_query()}` does not support by-modulation.")
         return self
-
+    
+    def from_(self, src:int) -> 'Traversal':
+        prev_step = self.query_steps[-1]
+        if prev_step.supports_fromto:
+            if type(src) is not int:
+                raise QueryError("Invalid source type for from-modulation")
+            if prev_step.from_ is None:
+                prev_step.from_ = src
+            else:
+                raise QueryError(f"Step `{prev_step.print_query()}` does not support multiple from-modulations.")
+        else:
+            raise QueryError(f"Step `{prev_step.print_query()}` does not support from-modulation.")
+        return self
+    
+    def to_(self, dest:int) -> 'Traversal':
+        prev_step = self.query_steps[-1]
+        if prev_step.supports_fromto:
+            if type(dest) is not int:
+                raise QueryError("Invalid source type for to-modulation")
+            if prev_step.to_ is None:
+                prev_step.to_ = dest
+            else:
+                raise QueryError(f"Step `{prev_step.print_query()}` does not support multiple to-modulations.")
+        else:
+            raise QueryError(f"Step `{prev_step.print_query()}` does not support to-modulation.")
+        return self 
+    
     ## ===== SIDE EFFECT STEPS ======
     def side_effect(self, side_effect:'AnonymousTraversal|Callable[[Traverser], None]') -> 'Traversal':
         from .steps.base_steps import SideEffectStep
@@ -464,6 +490,11 @@ class Traversal:
     def iter(self, by:str|List[str]=None, include_data:bool=False) -> 'Traversal':
         from .steps.terminal_steps import AsGenerator
         self._add_step(AsGenerator(self, by=by, include_data=include_data))
+        return self
+
+    def iterate(self) -> 'Traversal':
+        from .steps.terminal_steps import Iterate
+        self._add_step(Iterate(self))
         return self
 
     def _optimize_query(self):
@@ -592,8 +623,10 @@ class MogwaiGraphTraversalSource:
         from .steps.start_steps import V
         return Traversal(self, start=V(self.connector, init), **self.traversal_args)
 
-    def addE(self) -> 'Traversal':
-        raise NotImplementedError("This has not been implemented yet.")
+    def addE(self, relation:str, from_:int=None, to_:int=None, **kwargs) -> 'Traversal':
+        from .steps.start_steps import AddE
+        return Traversal(self, start=AddE(self.connector, relation, from_=from_, to_=to_, **kwargs), **self.traversal_args)
 
-    def addV(self) -> 'Traversal':
-        raise NotImplementedError("This has not been implemented yet.")
+    def addV(self, label:str|Set[str], name:str="", **kwargs) -> 'Traversal':
+        from .steps.start_steps import AddV
+        return Traversal(self, start=AddV(self.connector, label, name, **kwargs), **self.traversal_args)

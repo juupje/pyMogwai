@@ -214,6 +214,24 @@ class TestTraverser(BaseTest):
         self.assertTrue(res[0]  in ["lop", "ripple"], "Query result incorrect")
     """
 
+    def test_addV_and_addE(self):
+        g = Trav.MogwaiGraphTraversalSource(self.modern)
+        query = g.addV("Person", name="john", age=30).next()
+        print(f"Query: {query.print_query()}")
+        john = query.run()
+        print(f"Result: {john}")
+        self.assertEqual(g.V().count().next().run(), 7, "Node not added to graph")
+
+        vadas = g.V().has_name("vadas").next().run()
+        query = g.addE("knows").from_(john).to_(vadas).property("likes", True).iterate()
+        print(f"Query: {query.print_query()}")
+        query.run()
+        query = g.E().properties('likes').next()
+        print(f"Query: {query.print_query()}")
+        res = query.run()
+        print(f"Result: {res}")
+        self.assertEqual(res, {"likes": True}, "Node not added to graph")
+
 
 if __name__ == "__main__":
     import unittest

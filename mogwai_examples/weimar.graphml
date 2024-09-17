@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns
+         http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+  <key id="d0" for="node" attr.name="url" attr.type="string"/>
+  <key id="d1" for="edge" attr.name="relationship" attr.type="string"/>
+  <graph id="G" edgedefault="directed">
+    <node id="Frauentorstr1">
+      <data key="d0">https://www.wikidata.org/wiki/Q124830515</data>
+    </node>
+    <node id="WikidataEintrag">
+      <data key="d0">https://www.wikidata.org/wiki/Q124830515</data>
+    </node>
+    <node id="Fotografie">
+      <data key="d0">https://fotoarchiv.weimar.de/detail/7995/</data>
+    </node>
+    <node id="WilhelmHartan">
+      <data key="d0">https://de.wikipedia.org/wiki/Wilhelm_Hartan</data>
+    </node>
+    <node id="Adressbuch"/>
+    <node id="Hartan"/>
+    <edge source="Frauentorstr1" target="WikidataEintrag">
+      <data key="d1">hat Eintrag</data>
+    </edge>
+    <edge source="Frauentorstr1" target="Fotografie">
+      <data key="d1">abgebildet in</data>
+    </edge>
+    <edge source="Fotografie" target="WilhelmHartan">
+      <data key="d1">aufgenommen von</data>
+    </edge>
+    <edge source="WilhelmHartan" target="Hartan">
+      <data key="d1">Familienname</data>
+    </edge>
+    <edge source="Hartan" target="Adressbuch">
+      <data key="d1">erwähnt in</data>
+    </edge>
+  </graph>
+</graphml>

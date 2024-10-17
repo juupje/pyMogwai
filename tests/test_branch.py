@@ -5,7 +5,7 @@ from mogwai.parser.filesystem import FileSystemGraph as FSG
 from .basetest import BaseTest
 
 
-class TestTraverser(BaseTest):
+class TestBranch(BaseTest):
     """
     test the traverser
     """

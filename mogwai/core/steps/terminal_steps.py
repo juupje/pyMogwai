@@ -60,7 +60,7 @@ class AsGenerator(Step):
         if self.by:
             get_property = get_dict_indexer(self.by)
         def convert_func(trav):
-            if isinstance(trav, Iterable):
+            if isinstance(trav, (list, tuple, set)):
                 #we've got nested data...
                 logger.debug("Recursively listing traversers...")
                 return [convert_func(t) for t in trav]
@@ -77,7 +77,6 @@ class AsGenerator(Step):
                 return trav.value
             else:
                 return trav
-
         return (convert_func(trav) for trav in traversers)
 
 class HasNext(Step):
@@ -105,3 +104,11 @@ class AsPath(Step):
         else:
             paths = [t.path for t in traversers]
         return paths
+    
+class Iterate(AsGenerator):
+    def __init__(self, traversal:Iterable):
+        super().__init__(traversal)
+        self.flags = Step.ISTERMINAL
+    
+    def __call__(self, traversers:Iterable[Traverser]|Iterable[Value]|Iterable[Property]) -> None:
+        for _ in traversers: pass #TODO: optimize this: we needn't execute this if there are no side effects!

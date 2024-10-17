@@ -11,7 +11,7 @@ class PDFGraph(MogwaiGraph):
                 raise FileNotFoundError(f"No such file or directory: '{file:s}'")
             self.file = file
             name = name or os.path.basename(file)
-            self.root = self.add_labeled_node(label=PDFGraph.LABEL, name=name, properties=get_file_stats(self.file))
+            self.root = self.add_labeled_node(label=PDFGraph.LABEL, name=name, **get_file_stats(self.file))
             self.construct()
 
     def construct(self):
@@ -22,7 +22,7 @@ class PDFGraph(MogwaiGraph):
                      "creator": meta.creator,
                      "subject": meta.subject,
                      "title": meta.title}
-        self.nodes[self.root]["properties"].update({"metadata": meta_dict,
+        self.nodes[self.root].update({"metadata": meta_dict,
                                 "number_of_pages": len(reader.pages)})
         titles = []
         def collect_titles(obj):
@@ -33,5 +33,5 @@ class PDFGraph(MogwaiGraph):
                     collect_titles(child)
         collect_titles(reader.outline)
         for title in titles:
-            node = self.add_labeled_node(label="PDFTitle", name=title[0], properties=dict(page_number=title[1]))
+            node = self.add_labeled_node(label="PDFTitle", name=title[0], page_number=title[1])
             self.add_labeled_edge(self.root, node, "HAS_CONTENT")

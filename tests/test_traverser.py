@@ -77,7 +77,6 @@ class TestTraverser(BaseTest):
         res2 = query2.run()
         self.assertEqual(set(res2), set(res), "Query result incorrect")
 
-    @unittest.skip("needs fix")  # does not works as of 2024-08-15
     def test_cache_and_select(self):
         g = Trav.MogwaiGraphTraversalSource(self.modern)
         query = g.V().out().as_("a").out().select("a", by="name").to_list()
@@ -139,9 +138,9 @@ class TestTraverser(BaseTest):
         query = g.V().has_label("Person").property("City", "Aachen").run()
         for node in g.V().has_label("Person").to_list().run():
             data = self.modern.nodes(data=True)[node]
-            print(f"{data['name']} -> City: {data['properties']['City']}")
+            print(f"{data['name']} -> City: {data['City']}")
             self.assertEqual(
-                data["properties"]["City"],
+                data["City"],
                 "Aachen",
                 "SideEffect did not set city to Aachen",
             )
@@ -213,6 +212,24 @@ class TestTraverser(BaseTest):
         print(f"Result: {res}")
         self.assertTrue(res[0]  in ["lop", "ripple"], "Query result incorrect")
     """
+
+    def test_addV_and_addE(self):
+        g = Trav.MogwaiGraphTraversalSource(self.modern)
+        query = g.addV("Person", name="john", age=30).next()
+        print(f"Query: {query.print_query()}")
+        john = query.run()
+        print(f"Result: {john}")
+        self.assertEqual(g.V().count().next().run(), 7, "Node not added to graph")
+
+        vadas = g.V().has_name("vadas").next().run()
+        query = g.addE("knows").from_(john).to_(vadas).property("likes", True).iterate()
+        print(f"Query: {query.print_query()}")
+        query.run()
+        query = g.E().properties('likes').next()
+        print(f"Query: {query.print_query()}")
+        res = query.run()
+        print(f"Result: {res}")
+        self.assertEqual(res, {"likes": True}, "Node not added to graph")
 
 
 if __name__ == "__main__":

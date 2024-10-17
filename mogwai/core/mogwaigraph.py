@@ -1,6 +1,7 @@
 import networkx
 from itertools import count
 from .exceptions import MogwaiGraphError
+from typing import Optional
 
 class MogwaiGraph (networkx.DiGraph):
     """
@@ -10,13 +11,30 @@ class MogwaiGraph (networkx.DiGraph):
         super().__init__(*args, **kwargs)
         self.counter = count(0)
 
-    def add_labeled_node(self,label:set|str, name:str, properties:dict=None):
-        #we can only insert a node by hashable value and as names and ids
-        #can occur multiple times we use random values
+    def add_labeled_node(self, label: set | str, name: str, properties: dict = None, node_id: Optional[int] = None) -> int:
+        """
+        Add a labeled node to the graph.
+
+        we can only insert a node by hashable value and as names and ids
+        might occur multiple times we use incremented node ids if no node_id is provided
+
+        Args:
+            label (Union[set, str]): The label or set of labels for the node.
+            name (str): The name of the node.
+            properties (dict, optional): Additional properties for the node. Defaults to None.
+            node_id (Optional[int], optional): The ID for the node. If not provided, a new ID will be generated. Defaults to None.
+
+        Returns:
+            int: The ID of the newly added node.
+
+        Raises:
+            MogwaiGraphError: If a node with the provided ID already exists in the graph.
+        """
         label = label if isinstance(label, set) else {label}
-        nodeID = next(self.counter)
-        super().add_node(nodeID, labels=label,name=name, properties=properties or {})
-        return nodeID
+        if node_id is None:
+            node_id = next(self.counter)
+        super().add_node(node_id, labels=label,name=name, properties=properties or {})
+        return node_id
 
     def add_labeled_edge(self,srcId:int,destId:int,edgeLabel:str,properties:dict=None):
         if(self.has_node(srcId) and self.has_node(destId)):
@@ -103,6 +121,10 @@ class MogwaiGraph (networkx.DiGraph):
 
     @classmethod
     def crew(cls) -> 'MogwaiGraph':
+        """
+        create the TheCrew example graph
+        see TinkerFactory.createTheCrew() in https://tinkerpop.apache.org/docs/current/reference/
+        """
         g = MogwaiGraph()
         def t(startTime:int, endTime:int=None):
             d = dict()

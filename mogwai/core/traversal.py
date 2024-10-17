@@ -2,7 +2,7 @@ from typing import Any, List, Set, Tuple, Callable, Iterable, TYPE_CHECKING
 from .mogwaigraph import MogwaiGraph
 from mogwai.core.traverser import Traverser
 from mogwai.core.steps.scope import Scope
-from mogwai.decorators import with_call_order
+from mogwai.decorators import with_call_order, add_camel_case_methods
 from .exceptions import QueryError
 from mogwai.config import DEFAULT_ITERATION_DEPTH
 from mogwai.config import USE_MULTIPROCESSING
@@ -11,8 +11,7 @@ from .steps.base_steps import Step
 import logging
 logger = logging.getLogger("Mogwai")
 
-
-
+@add_camel_case_methods
 class Traversal:
     def __init__(self, source:'MogwaiGraphTraversalSource', start:'Step', optimize:bool=True, eager:bool=False, query_verify:bool=False, use_mp:bool=False):
         if start is None:
@@ -41,6 +40,12 @@ class Traversal:
         return self
 
     def has(self, *args) -> 'Traversal':
+        """
+        Filter traversers based on whether they have the given properties.
+        * If one argument is given, it is assumed to be a key, and the step checks if a property with that key exists, regardless of its value.
+        * If two arguments are given, it is assumed to be a key and a value, and the step checks if a property with that key exists and has the given value.
+        * If three arguments are given, the first argument is assumed to be a label, and the step checks if a property with the given key and value exists on an element with that label. 
+        """
         #if `key` is a list, like ['a', 'b'], the value will be compared to data['a']['b']
         from .steps.filter_steps import Has
         if len(args)==1:
@@ -76,12 +81,15 @@ class Traversal:
         self._add_step(HasId(self, *ids))
         return self
 
-    def has_name(self, name: str) -> 'Traversal':
-        return self.has("name", name)
-
-    def has_property(self, property: str, value: Any=None) -> 'Traversal':
-        keys = ["properties"] + property if type(property) is list else ["properties", property]
-        return self.has(keys, value)
+    def has_name(self, *name: str) -> 'Traversal':
+        if len(name) == 0:
+            raise QueryError("No name provided for `has_name`")
+        elif len(name) == 1:
+            return self.has("name", name[0])
+        elif len(name) > 1:
+            from .steps.filter_steps import HasWithin
+            self._add_step(HasWithin(self, "name", name))
+            return self
 
     def has_label(self, label: str|Set[str]) -> 'Traversal':
         if isinstance(label, set):
@@ -179,20 +187,6 @@ class Traversal:
     def label(self) -> 'Traversal':
         return self.values("labels")
 
-    '''
-    def properties(self, *keys:str|List[str]) -> 'Traversal':
-        # TODO: change this to return Property's
-        from .steps.map_steps import Value
-        for i in range(len(keys)):
-            if keys[i] is None:
-                keys = "properties"
-            elif type(keys[i]) is list:
-                keys[i] = ["properties"] + keys[i]
-            else:
-                keys[i] = ["properties", keys[i]]
-        self._add_step(Value(self, keys))
-        return self
-    '''
     def properties(self, *keys:str|List[str]) -> 'Traversal':
         from .steps.map_steps import Properties
         self._add_step(Properties(self, *keys))
@@ -236,6 +230,15 @@ class Traversal:
     def mean(self, scope:Scope=Scope.global_) -> 'Traversal':
         from .steps.map_steps import Aggregate
         self._add_step(Aggregate(self, "mean", scope))
+        return self
+
+    def element_map(self, *keys:str) -> 'Traversal':
+        from .steps.map_steps import ElementMap
+        if len(keys) == 1:
+            keys = keys[0]
+        elif len(keys)==0:
+            keys=None
+        self._add_step(ElementMap(self, keys))
         return self
 
     ## ===== FLATMAP STEPS ======
@@ -321,6 +324,11 @@ class Traversal:
             raise TypeError("Branch is only allowed to be given MapSteps")
         self._add_step(Branch(self,branchFunc))
         return self
+    
+    def union(self, *traversals:'AnonymousTraversal') -> 'Traversal':
+        from .steps.branch_steps import Union
+        self._add_step(Union(self, *traversals))
+        return self
 
     ## ===== MODULATION STEPS ======
     def option(self,branchKey,OptionStep:'AnonymousTraversal') -> 'Traversal':
@@ -396,10 +404,7 @@ class Traversal:
             if isinstance(key, AnonymousTraversal):
                 if not prev_step.supports_anonymous_by:
                     raise QueryError(f"Step `{prev_step.print_query()}` does not support anonymous traversals as by-modulations.")
-            elif type(key) is str:
-                if key != "name" and key != "labels":
-                    key = (["properties"] + key) if type(key) is list else ["properties", key]
-            else:
+            elif type(key) is not str:
                 raise QueryError("Invalid key type for by-modulation")
 
             if prev_step.supports_multiple_by:
@@ -411,7 +416,33 @@ class Traversal:
         else:
             raise QueryError(f"Step `{prev_step.print_query()}` does not support by-modulation.")
         return self
-
+    
+    def from_(self, src:int) -> 'Traversal':
+        prev_step = self.query_steps[-1]
+        if prev_step.supports_fromto:
+            if type(src) is not int:
+                raise QueryError("Invalid source type for from-modulation")
+            if prev_step.from_ is None:
+                prev_step.from_ = src
+            else:
+                raise QueryError(f"Step `{prev_step.print_query()}` does not support multiple from-modulations.")
+        else:
+            raise QueryError(f"Step `{prev_step.print_query()}` does not support from-modulation.")
+        return self
+    
+    def to_(self, dest:int) -> 'Traversal':
+        prev_step = self.query_steps[-1]
+        if prev_step.supports_fromto:
+            if type(dest) is not int:
+                raise QueryError("Invalid source type for to-modulation")
+            if prev_step.to_ is None:
+                prev_step.to_ = dest
+            else:
+                raise QueryError(f"Step `{prev_step.print_query()}` does not support multiple to-modulations.")
+        else:
+            raise QueryError(f"Step `{prev_step.print_query()}` does not support to-modulation.")
+        return self 
+    
     ## ===== SIDE EFFECT STEPS ======
     def side_effect(self, side_effect:'AnonymousTraversal|Callable[[Traverser], None]') -> 'Traversal':
         from .steps.base_steps import SideEffectStep
@@ -421,10 +452,14 @@ class Traversal:
     def property(self, key:str|List[str], value:Any) -> 'Traversal':
         from .steps.base_steps import SideEffectStep
         from mogwai.utils import get_dict_indexer
-        keys = ['properties'] + (key if type(key) is list else [key])
-        indexer =  get_dict_indexer(keys[:-1])
+        #keys = ['properties'] + (key if type(key) is list else [key])
+        if isinstance(key, (tuple, list)):
+            indexer = get_dict_indexer(key[:-1])
+            key = key[-1]
+        else:
+            indexer = lambda x: x
         def effect(t:'Traverser'):
-            indexer(self._get_element(t))[keys[-1]] = value
+            indexer(self._get_element(t))[key] = value
         self._add_step(SideEffectStep(self, side_effect=effect))
         return self
 
@@ -454,6 +489,11 @@ class Traversal:
     def iter(self, by:str|List[str]=None, include_data:bool=False) -> 'Traversal':
         from .steps.terminal_steps import AsGenerator
         self._add_step(AsGenerator(self, by=by, include_data=include_data))
+        return self
+
+    def iterate(self) -> 'Traversal':
+        from .steps.terminal_steps import Iterate
+        self._add_step(Iterate(self))
         return self
 
     def _optimize_query(self):
@@ -582,8 +622,10 @@ class MogwaiGraphTraversalSource:
         from .steps.start_steps import V
         return Traversal(self, start=V(self.connector, init), **self.traversal_args)
 
-    def addE(self) -> 'Traversal':
-        raise NotImplementedError("This has not been implemented yet.")
+    def addE(self, relation:str, from_:int=None, to_:int=None, **kwargs) -> 'Traversal':
+        from .steps.start_steps import AddE
+        return Traversal(self, start=AddE(self.connector, relation, from_=from_, to_=to_, **kwargs), **self.traversal_args)
 
-    def addV(self) -> 'Traversal':
-        raise NotImplementedError("This has not been implemented yet.")
+    def addV(self, label:str|Set[str], name:str="", **kwargs) -> 'Traversal':
+        from .steps.start_steps import AddV
+        return Traversal(self, start=AddV(self.connector, label, name, **kwargs), **self.traversal_args)

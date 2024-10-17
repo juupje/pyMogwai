@@ -5,7 +5,7 @@ from mogwai.parser.graphml_converter import graphml_to_mogwaigraph
 from tests.basetest import BaseTest
 
 
-class TestSteps(BaseTest):
+class TestAirroutes(BaseTest):
     """
     test Steps
     """

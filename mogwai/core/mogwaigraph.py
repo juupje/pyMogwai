@@ -59,7 +59,7 @@ class MogwaiGraph (networkx.DiGraph):
         raise MogwaiGraphError("Please use `add_labeled_node` to add nodes to a MogwaiGraph.")
 
     def add_edge(self, *args, **kwargs):
-        raise MogwaiGraphError("Please use `add_edge_node` to add edges to a MogwaiGraph.")
+        raise MogwaiGraphError("Please use `add_labeled_edge` to add edges to a MogwaiGraph.")
 
     def _get_nodes_set(self, label:set, name:str):
         n_none = name is None

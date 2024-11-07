@@ -44,6 +44,9 @@ class MogwaiGraph (networkx.DiGraph):
         return node_id
 
     def add_labeled_edge(self,srcId:int,destId:int,edgeLabel:str,properties:dict=None, **kwargs):
+        """
+        add a labeled edge
+        """
         if(self.has_node(srcId) and self.has_node(destId)):
             properties = properties or {}
             properties.update(kwargs)

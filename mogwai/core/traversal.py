@@ -13,6 +13,24 @@ logger = logging.getLogger("Mogwai")
 
 @add_camel_case_methods
 class Traversal:
+    """
+    see https://tinkerpop.apache.org/javadocs/3.7.3/core/org/apache/tinkerpop/gremlin/process/traversal/Traversal.html
+    A Traversal represents a directed walk over a Graph.
+    This is the base interface for all traversal's,
+    where each extending interface is seen as a domain
+    specific language. For example, GraphTraversal
+    is a domain specific language for traversing a graph
+    using "graph concepts" (e.g. vertices, edges).
+
+    A Traversal is evaluated in one of two ways:
+    iterator-based OLTP or GraphComputer-based OLAP.
+    OLTP traversals leverage an iterator and are executed
+    within a single execution environment (e.g. JVM)
+    (with data access allowed to be remote).
+
+    OLAP traversals leverage GraphComputer and are executed
+    between multiple execution environments (e.g.JVMs) (and/or cores).
+    """
     def __init__(self, source:'MogwaiGraphTraversalSource', start:'Step', optimize:bool=True, eager:bool=False, query_verify:bool=False, use_mp:bool=False):
         if start is None:
             raise QueryError("start step cannot be None")
@@ -44,7 +62,7 @@ class Traversal:
         Filter traversers based on whether they have the given properties.
         * If one argument is given, it is assumed to be a key, and the step checks if a property with that key exists, regardless of its value.
         * If two arguments are given, it is assumed to be a key and a value, and the step checks if a property with that key exists and has the given value.
-        * If three arguments are given, the first argument is assumed to be a label, and the step checks if a property with the given key and value exists on an element with that label. 
+        * If three arguments are given, the first argument is assumed to be a label, and the step checks if a property with the given key and value exists on an element with that label.
         """
         #if `key` is a list, like ['a', 'b'], the value will be compared to data['a']['b']
         from .steps.filter_steps import Has
@@ -324,7 +342,7 @@ class Traversal:
             raise TypeError("Branch is only allowed to be given MapSteps")
         self._add_step(Branch(self,branchFunc))
         return self
-    
+
     def union(self, *traversals:'AnonymousTraversal') -> 'Traversal':
         from .steps.branch_steps import Union
         self._add_step(Union(self, *traversals))
@@ -416,7 +434,7 @@ class Traversal:
         else:
             raise QueryError(f"Step `{prev_step.print_query()}` does not support by-modulation.")
         return self
-    
+
     def from_(self, src:int) -> 'Traversal':
         prev_step = self.query_steps[-1]
         if prev_step.supports_fromto:
@@ -429,7 +447,7 @@ class Traversal:
         else:
             raise QueryError(f"Step `{prev_step.print_query()}` does not support from-modulation.")
         return self
-    
+
     def to_(self, dest:int) -> 'Traversal':
         prev_step = self.query_steps[-1]
         if prev_step.supports_fromto:
@@ -441,8 +459,8 @@ class Traversal:
                 raise QueryError(f"Step `{prev_step.print_query()}` does not support multiple to-modulations.")
         else:
             raise QueryError(f"Step `{prev_step.print_query()}` does not support to-modulation.")
-        return self 
-    
+        return self
+
     ## ===== SIDE EFFECT STEPS ======
     def side_effect(self, side_effect:'AnonymousTraversal|Callable[[Traverser], None]') -> 'Traversal':
         from .steps.base_steps import SideEffectStep

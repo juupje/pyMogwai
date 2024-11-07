@@ -4,6 +4,22 @@ import logging
 logger = logging.getLogger("Mogwai")
 
 class Traverser:
+    """
+    see https://tinkerpop.apache.org/javadocs/3.7.3/core/org/apache/tinkerpop/gremlin/process/traversal/Traverser.html
+
+    A Traverser represents the current state of an object
+    flowing through a Traversal.
+
+    A traverser maintains a reference to the current object,
+    a traverser-local "sack",
+    a traversal-global sideEffect, a bulk count,
+    and a path history.
+
+    Different types of traversers can exist
+    depending on the semantics of the traversal
+    and the desire for space/time optimizations of
+    the developer.
+    """
     def __init__(self, node_id: int, other_node_id:int=None, track_path:bool=True): #TODO set `track_path` default to False
         self.node_id = node_id
         self.track_path = track_path

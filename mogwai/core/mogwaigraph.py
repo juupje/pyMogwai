@@ -1,16 +1,40 @@
+from dataclasses import dataclass
 import networkx
 from itertools import count
 from .exceptions import MogwaiGraphError
 from typing import Any, Optional
 
+@dataclass
+class MogwaiGraphConfig:
+    """
+    configuration of a MogwaiGraph
+    """
+    name_field: str='name'
+    label_field: str='labels'
+    edge_label_field:str='labels'
+    default_node_label:str= 'Node'
+    default_edge_label:str= 'Edge'
+
 class MogwaiGraph (networkx.DiGraph):
     """
     networkx based directed graph
+    see https://networkx.org/documentation/stable/reference/classes/digraph.html
     """
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.counter = count(0)
 
+    def __init__(self,
+        incoming_graph_data=None,
+        config:MogwaiGraphConfig=None,
+        **attr):
+        """Initialize a MogwaiGraph with optional data and configuration.
+
+        Args:
+            incoming_graph_data: Graph data in NetworkX compatible format
+            config (MogwaiGraphConfig): Configuration for field names and defaults
+            **attr: Graph attributes as key=value pairs
+        """
+        super().__init__(incoming_graph_data, **attr)
+        self.counter = count(0)
+        self.config = config or MogwaiGraphConfig()
 
     def add_labeled_node(self, label: set | str, name: str, properties: dict = None, node_id: Optional[str] = None,**kwargs) -> Any:
         """
@@ -36,11 +60,16 @@ class MogwaiGraph (networkx.DiGraph):
             node_id = next(self.counter)
         properties = properties or {}
         properties.update(kwargs)
-        if 'name' in properties:
-            raise MogwaiGraphError("The 'name' property is reserved for the node name.")
-        elif 'labels' in properties:
-            raise MogwaiGraphError("The 'labels' property is reserved for the node labels.")
-        super().add_node(node_id, labels=label,name=name, **properties)
+        if self.config.name_field in properties:
+            raise MogwaiGraphError(f"The '{self.config.name_field}' property is reserved for the node name.")
+        elif self.config.label_field in properties:
+            raise MogwaiGraphError(f"The '{self.config.label_field}' property is reserved for the node labels.")
+        node_props = {
+            self.config.name_field: name,
+            self.config.label_field: label,
+            **properties
+        }
+        super().add_node(node_id, **node_props)
         return node_id
 
     def add_labeled_edge(self,srcId:int,destId:int,edgeLabel:str,properties:dict=None, **kwargs):
@@ -50,19 +79,36 @@ class MogwaiGraph (networkx.DiGraph):
         if(self.has_node(srcId) and self.has_node(destId)):
             properties = properties or {}
             properties.update(kwargs)
-            if 'edgeLabel' in properties:
-                raise MogwaiGraphError("The 'edgeLabel' property is reserved for the edge label.")
-            elif 'labels' in properties:
-                raise MogwaiGraphError("The 'labels' property is reserved for the node labels.")
-            super().add_edge(srcId,destId,labels=edgeLabel, **properties)
+            if self.config.edge_label_field in properties:
+                raise MogwaiGraphError(f"The '{self.config.edge_label_field}' property is reserved for the edge label.")
+            elif self.config.label_field in properties:
+                raise MogwaiGraphError(f"The '{self.config.label_field}' property is reserved for the node labels.")
+            edge_props = {
+                self.config.edge_label_field: edgeLabel,
+                **properties
+            }
+            super().add_edge(srcId,destId, **edge_props)
         else:
             raise MogwaiGraphError(f"Node with id {srcId if srcId<0 else destId} is not in the graph.")
 
     def add_node(self, *args, **kwargs):
-        raise MogwaiGraphError("Please use `add_labeled_node` to add nodes to a MogwaiGraph.")
+        """Add a node with default or explicit labels"""
+        if len(args) > 0:
+            node_id = args[0]
+        else:
+            node_id = next(self.counter)
+
+        label = kwargs.pop('labels', {self.config.default_node_label})
+        name = kwargs.pop('name', str(node_id))
+        return self.add_labeled_node(label, name, properties=kwargs, node_id=node_id)
 
     def add_edge(self, *args, **kwargs):
-        raise MogwaiGraphError("Please use `add_labeled_edge` to add edges to a MogwaiGraph.")
+        """Add an edge with default or explicit label"""
+        if len(args) < 2:
+            raise MogwaiGraphError("add_edge() requires source and target node ids")
+        src, dst = args[0:2]
+        label = kwargs.pop(self.config.edge_label_field, self.config.default_edge_label)
+        return self.add_labeled_edge(src, dst, label, properties=kwargs)
 
     def _get_nodes_set(self, label:set, name:str):
         n_none = name is None

@@ -33,8 +33,16 @@ class MogwaiGraph (networkx.DiGraph):
             **attr: Graph attributes as key=value pairs
         """
         super().__init__(incoming_graph_data, **attr)
-        self.counter = count(0)
+        self.counter = 0
         self.config = config or MogwaiGraphConfig()
+
+    def get_next_node_id(self):
+        """
+        get the next node_id
+        """
+        node_id = self.counter
+        self.counter += 1
+        return node_id
 
     def add_labeled_node(self, label: set | str, name: str, properties: dict = None, node_id: Optional[str] = None,**kwargs) -> Any:
         """
@@ -57,7 +65,7 @@ class MogwaiGraph (networkx.DiGraph):
         """
         label = label if isinstance(label, set) else (set(label) if isinstance(label, (list,tuple)) else {label})
         if node_id is None:
-            node_id = next(self.counter)
+            node_id = self.get_next_node_id()
         properties = properties or {}
         properties.update(kwargs)
         if self.config.name_field in properties:
@@ -96,7 +104,7 @@ class MogwaiGraph (networkx.DiGraph):
         if len(args) > 0:
             node_id = args[0]
         else:
-            node_id = next(self.counter)
+            node_id = self.get_next_node_id()
 
         label = kwargs.pop('labels', {self.config.default_node_label})
         name = kwargs.pop('name', str(node_id))
@@ -133,7 +141,7 @@ class MogwaiGraph (networkx.DiGraph):
         return self.nodes
 
     def merge_subgraph(self, other:'MogwaiGraph', srcId:int, targetId:int, edgeLabel:str):
-        mapping = {k: next(self.counter) for k in other.nodes}
+        mapping = {k: self.get_next_node_id() for k in other.nodes}
         relabeled = networkx.relabel_nodes(other, mapping, copy=True)
         self.add_nodes_from(relabeled.nodes(data=True))
         self.add_edges_from(relabeled.edges(data=True))

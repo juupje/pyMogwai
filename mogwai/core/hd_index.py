@@ -37,12 +37,17 @@ class IndexConfigs(Enum):
 
         if self == IndexConfigs.MINIMAL:
             return IndexConfig({
-                "PS",  # Predicate->Subject: labels->nodes, properties->nodes
-                "SP",  # Subject->Predicate: node->labels
-                "PO",  # Predicate->Object: property->values
-                "OP",  # Object->Predicate: value->properties
-                "SO",  # Subject->Object: source->target node
-                "OS"   # Object->Subject: target->source node
+                # Core indices for basic node relationships
+                "PS",  # Predicate -> Subject: links predicates to subjects (e.g., labels or properties to nodes)
+                "PO",  # Predicate -> Object: maps predicates to values (e.g., property values)
+                "SO",  # Subject -> Object: links source nodes to target nodes in relationships
+                "OS",  # Object -> Subject: reverse lookup for values back to nodes
+
+                # Graph-based indices for context-specific associations
+                "PG",  # Predicate -> Graph: associates predicates with graph contexts
+                "SG",  # Subject -> Graph: associates subjects with graph contexts
+                "GO",  # Graph -> Object: maps graph contexts to objects for grouped retrieval
+                "GP"   # Graph -> Predicate: links graph contexts to predicates
             })
 
         raise ValueError(f"Unknown index configuration: {self}")

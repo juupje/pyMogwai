@@ -17,7 +17,7 @@ class MogwaiGraphConfig:
     edge_label_field: str = "labels"
     default_node_label: str = "Node"
     default_edge_label: str = "Edge"
-    index_config: str = "minimal"
+    index_config: str = "off"
 
 
 class MogwaiGraph(networkx.DiGraph):
@@ -50,6 +50,38 @@ class MogwaiGraph(networkx.DiGraph):
         node_id = self.counter
         self.counter += 1
         return node_id
+
+    def add_to_index(self, element_type:str, subject_id: Hashable, label: set, name: str, properties: dict):
+        """
+        Add labels, name, and properties to the SPOG index for a
+        given subject and element_type
+
+        Args:
+            element_type: (str): node or edge
+            subject_id (Hashable): The ID of the subject (node or edge).
+            label (set): Set of labels for the subject.
+            name (str): Name of the subject.
+            properties (dict): Dictionary of additional properties to index.
+        """
+        # only index if the config calls for it
+        if self.config.index_config == "off":
+            return
+        # Add quads for each label with g="label"
+        for lbl in label:
+            label_quad = Quad(s=subject_id, p="label", o=lbl, g=f"{element_type}-label")
+            self.spog_index.add_quad(label_quad)
+
+        # Add quad for name with g="name"
+        name_quad = Quad(s=subject_id, p="name", o=name, g=f"{element_type}-name")
+        self.spog_index.add_quad(name_quad)
+
+        # Add quads for each property with g="property"
+        for prop_name, prop_value in properties.items():
+            if not isinstance(prop_value, Hashable):
+                prop_value = str(prop_value)  # Ensure property value is hashable
+            property_quad = Quad(s=subject_id, p=prop_name, o=prop_value, g=f"{element_type}-property")
+            self.spog_index.add_quad(property_quad)
+
 
     def add_labeled_node(
         self,
@@ -100,21 +132,8 @@ class MogwaiGraph(networkx.DiGraph):
             **properties,
         }
         super().add_node(node_id, **node_props)
-        # Add a single quad with str(label)
-        # sets of labels can therefore only be retrieved by full set
-        label_quad = Quad(s=node_id, p="label", o=str(label))
-        self.spog_index.add_quad(label_quad)
-
-        # Add a quad for the name
-        name_quad = Quad(s=node_id, p="name", o=name)
-        self.spog_index.add_quad(name_quad)
-
-        # Add quads for each property
-        for prop_name, prop_value in properties.items():
-            if not isinstance(prop_value, Hashable):
-                prop_value = str(prop_value)  # Convert to a string if not hashable
-            property_quad = Quad(s=node_id, p=prop_name, o=prop_value)
-            self.spog_index.add_quad(property_quad)
+        # Use add_to_index to add label, name, and properties as quads
+        self.add_to_index("node",node_id, label, name, properties)
         return node_id
 
     def add_labeled_edge(
@@ -136,6 +155,12 @@ class MogwaiGraph(networkx.DiGraph):
                 )
             edge_props = {self.config.edge_label_field: edgeLabel, **properties}
             super().add_edge(srcId, destId, **edge_props)
+            # Add a quad specifically for the edge connection
+            edge_quad = Quad(s=srcId, p=edgeLabel, o=destId, g="edge-link")
+            self.spog_index.add_quad(edge_quad)
+
+            # Use add_to_index to add label, name, and properties as quads
+            self.add_to_index("edge", srcId, {edgeLabel}, edgeLabel, properties)
         else:
             raise MogwaiGraphError(
                 f"Node with id {srcId if srcId<0 else destId} is not in the graph."
@@ -219,12 +244,14 @@ class MogwaiGraph(networkx.DiGraph):
         MogwaiGraphDrawer(self, title=title, **kwargs).draw(outputfile)
 
     @classmethod
-    def modern(cls) -> "MogwaiGraph":
+    def modern(cls,index_config="off") -> "MogwaiGraph":
         """
         create the modern graph
         see https://tinkerpop.apache.org/docs/current/tutorials/getting-started/
         """
-        g = MogwaiGraph()
+        config=MogwaiGraphConfig
+        config.index_config=index_config
+        g = MogwaiGraph(config=config)
         marko = g.add_labeled_node("Person", name="marko", age=29)
         vadas = g.add_labeled_node("Person", name="vadas", age=27)
         lop = g.add_labeled_node("Software", name="lop", lang="java")

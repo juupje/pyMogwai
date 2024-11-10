@@ -10,7 +10,7 @@ class TestMogwaiGraph(BaseTest):
     tests for MogwaiGraph core functionality
     """
 
-    def setUp(self, debug=True, profile=True):
+    def setUp(self, debug=False, profile=True):
         BaseTest.setUp(self, debug=debug, profile=profile)
         self.G = MogwaiGraph()
         if self.debug:
@@ -113,36 +113,56 @@ class TestMogwaiGraph(BaseTest):
 
     def test_spog_index_issue13(self):
         """
-        Test the index handling.
+        Test the index handling according to
+        https://github.com/juupje/pyMogwai/issues/13
         """
-        g = MogwaiGraph.modern()
+        g = MogwaiGraph.modern(index_config="minimal")
         ps_lookup = g.spog_index.get_lookup("P", "S")
         self.assertIsNotNone(ps_lookup)
 
-        debug=self.debug
-        debug=True
+        debug = self.debug
+        #debug = True
         if debug:
             for index_name in g.spog_index.config.active_indices:
                 index = g.spog_index.indices.get(index_name)
                 if index:
                     print(f"Index: {index_name}")
-                    print(json.dumps(index.lookup,indent=2,default=str))
+                    print(json.dumps(index.lookup, indent=2, default=str))
 
         # Check that `label` in `PS` has references to all nodes
         self.assertEqual(ps_lookup.get("label"), {0, 1, 2, 3, 4, 5})
 
-        # Check that specific labels and names exist in `PO`
+        # Check specific labels and names in `PO`
         po_lookup = g.spog_index.get_lookup("P", "O")
-        self.assertEqual(po_lookup.get("label"), {"{'Person'}", "{'Software'}"})
-        self.assertEqual(po_lookup.get("name"), {"marko", "vadas", "josh", "peter", "lop", "ripple"})
+        self.assertEqual(po_lookup.get("label"), {"Person", "Software", "knows", "created"})
+        self.assertEqual(po_lookup.get("name"), {"ripple", "knows", "created", "peter", "josh", "lop", "marko", "vadas"})
 
         # Check `OS` for expected mappings
         os_lookup = g.spog_index.get_lookup("O", "S")
-        self.assertEqual(os_lookup.get("{'Person'}"), {0, 1, 3, 5})
-        self.assertEqual(os_lookup.get("{'Software'}"), {2, 4})
+        self.assertEqual(os_lookup.get("Person"), {0, 1, 3, 5})
+        self.assertEqual(os_lookup.get("Software"), {2, 4})
         self.assertEqual(os_lookup.get("java"), {2, 4})
 
-        # Check `SP` for node attributes
-        sp_lookup = g.spog_index.get_lookup("S", "P")
-        self.assertEqual(sp_lookup.get(0), {"label", "name", "age"})
-        self.assertEqual(sp_lookup.get(2), {"label", "name", "lang"})
+        # Check `SO` for node attribute and edge mappings
+        so_lookup = g.spog_index.get_lookup("S", "O")
+        self.assertEqual(so_lookup.get(0), {0.5, 1, 2, 3, 0.4, "marko", "knows", "Person", "created", 29})
+        self.assertEqual(so_lookup.get(2), {"lop", "java", "Software"})
+
+        # Check `GO` for graph-level object mappings
+        go_lookup = g.spog_index.get_lookup("G", "O")
+        self.assertEqual(go_lookup.get("node-label"), {"Person", "Software"})
+        self.assertEqual(go_lookup.get("node-name"), {"marko", "vadas", "josh", "peter", "lop", "ripple"})
+        self.assertEqual(go_lookup.get("node-property"), {32, 35, "java", 27, 29})
+        self.assertEqual(go_lookup.get("edge-link"), {1, 2, 3, 4})
+        self.assertEqual(go_lookup.get("edge-label"), {"created", "knows"})
+        self.assertEqual(go_lookup.get("edge-property"), {0.5, 1.0, 0.2, 0.4})
+
+        # Check `GP` for graph-level predicate mappings
+        gp_lookup = g.spog_index.get_lookup("G", "P")
+        self.assertEqual(gp_lookup.get("node-label"), {"label"})
+        self.assertEqual(gp_lookup.get("node-name"), {"name"})
+        self.assertEqual(gp_lookup.get("node-property"), {"age", "lang"})
+        self.assertEqual(gp_lookup.get("edge-link"), {"created", "knows"})
+        self.assertEqual(gp_lookup.get("edge-label"), {"label"})
+        self.assertEqual(gp_lookup.get("edge-name"), {"name"})
+        self.assertEqual(gp_lookup.get("edge-property"), {"weight"})

@@ -20,8 +20,7 @@ class TestPDF(BaseTest):
             "'Creator' field of metadata incorrect.",
         )
         self.assertTrue(
-            graph.get_nodes("PDFTitle", "discussion")[0][1]["page_number"]
-            == 3,
+            graph.get_nodes("PDFTitle", "discussion")[0][1]["page_number"] == 3,
             "Discussion at wrong place",
         )
         graph.draw(os.path.join(self.root_path, "tests", "pdf_test.svg"), prog="dot")

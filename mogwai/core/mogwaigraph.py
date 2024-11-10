@@ -1,30 +1,34 @@
 from dataclasses import dataclass
+from typing import Any, Hashable, Optional
+from mogwai.core.hd_index import SPOGIndex,IndexConfigs, Quad
 import networkx
-from itertools import count
+
 from .exceptions import MogwaiGraphError
-from typing import Any, Optional
+
 
 @dataclass
 class MogwaiGraphConfig:
     """
     configuration of a MogwaiGraph
     """
-    name_field: str='name'
-    label_field: str='labels'
-    edge_label_field:str='labels'
-    default_node_label:str= 'Node'
-    default_edge_label:str= 'Edge'
 
-class MogwaiGraph (networkx.DiGraph):
+    name_field: str = "name"
+    label_field: str = "labels"
+    edge_label_field: str = "labels"
+    default_node_label: str = "Node"
+    default_edge_label: str = "Edge"
+    index_config: str = "minimal"
+
+
+class MogwaiGraph(networkx.DiGraph):
     """
     networkx based directed graph
     see https://networkx.org/documentation/stable/reference/classes/digraph.html
     """
 
-    def __init__(self,
-        incoming_graph_data=None,
-        config:MogwaiGraphConfig=None,
-        **attr):
+    def __init__(
+        self, incoming_graph_data=None, config: MogwaiGraphConfig = None, **attr
+    ):
         """Initialize a MogwaiGraph with optional data and configuration.
 
         Args:
@@ -35,6 +39,9 @@ class MogwaiGraph (networkx.DiGraph):
         super().__init__(incoming_graph_data, **attr)
         self.counter = 0
         self.config = config or MogwaiGraphConfig()
+        # Initialize SPOG index based on config
+        index_config = IndexConfigs[self.config.index_config.upper()].get_config()
+        self.spog_index = SPOGIndex(index_config)
 
     def get_next_node_id(self):
         """
@@ -44,7 +51,14 @@ class MogwaiGraph (networkx.DiGraph):
         self.counter += 1
         return node_id
 
-    def add_labeled_node(self, label: set | str, name: str, properties: dict = None, node_id: Optional[str] = None,**kwargs) -> Any:
+    def add_labeled_node(
+        self,
+        label: set | str,
+        name: str,
+        properties: dict = None,
+        node_id: Optional[str] = None,
+        **kwargs,
+    ) -> Any:
         """
         Add a labeled node to the graph.
 
@@ -63,41 +77,69 @@ class MogwaiGraph (networkx.DiGraph):
         Raises:
             MogwaiGraphError: If a node with the provided ID already exists in the graph.
         """
-        label = label if isinstance(label, set) else (set(label) if isinstance(label, (list,tuple)) else {label})
+        label = (
+            label
+            if isinstance(label, set)
+            else (set(label) if isinstance(label, (list, tuple)) else {label})
+        )
         if node_id is None:
             node_id = self.get_next_node_id()
         properties = properties or {}
         properties.update(kwargs)
         if self.config.name_field in properties:
-            raise MogwaiGraphError(f"The '{self.config.name_field}' property is reserved for the node name.")
+            raise MogwaiGraphError(
+                f"The '{self.config.name_field}' property is reserved for the node name."
+            )
         elif self.config.label_field in properties:
-            raise MogwaiGraphError(f"The '{self.config.label_field}' property is reserved for the node labels.")
+            raise MogwaiGraphError(
+                f"The '{self.config.label_field}' property is reserved for the node labels."
+            )
         node_props = {
             self.config.name_field: name,
             self.config.label_field: label,
-            **properties
+            **properties,
         }
         super().add_node(node_id, **node_props)
+        # Add a single quad with str(label)
+        # sets of labels can therefore only be retrieved by full set
+        label_quad = Quad(s=node_id, p="label", o=str(label))
+        self.spog_index.add_quad(label_quad)
+
+        # Add a quad for the name
+        name_quad = Quad(s=node_id, p="name", o=name)
+        self.spog_index.add_quad(name_quad)
+
+        # Add quads for each property
+        for prop_name, prop_value in properties.items():
+            if not isinstance(prop_value, Hashable):
+                prop_value = str(prop_value)  # Convert to a string if not hashable
+            property_quad = Quad(s=node_id, p=prop_name, o=prop_value)
+            self.spog_index.add_quad(property_quad)
         return node_id
 
-    def add_labeled_edge(self,srcId:int,destId:int,edgeLabel:str,properties:dict=None, **kwargs):
+    def add_labeled_edge(
+        self, srcId: int, destId: int, edgeLabel: str, properties: dict = None, **kwargs
+    ):
         """
         add a labeled edge
         """
-        if(self.has_node(srcId) and self.has_node(destId)):
+        if self.has_node(srcId) and self.has_node(destId):
             properties = properties or {}
             properties.update(kwargs)
             if self.config.edge_label_field in properties:
-                raise MogwaiGraphError(f"The '{self.config.edge_label_field}' property is reserved for the edge label.")
+                raise MogwaiGraphError(
+                    f"The '{self.config.edge_label_field}' property is reserved for the edge label."
+                )
             elif self.config.label_field in properties:
-                raise MogwaiGraphError(f"The '{self.config.label_field}' property is reserved for the node labels.")
-            edge_props = {
-                self.config.edge_label_field: edgeLabel,
-                **properties
-            }
-            super().add_edge(srcId,destId, **edge_props)
+                raise MogwaiGraphError(
+                    f"The '{self.config.label_field}' property is reserved for the node labels."
+                )
+            edge_props = {self.config.edge_label_field: edgeLabel, **properties}
+            super().add_edge(srcId, destId, **edge_props)
         else:
-            raise MogwaiGraphError(f"Node with id {srcId if srcId<0 else destId} is not in the graph.")
+            raise MogwaiGraphError(
+                f"Node with id {srcId if srcId<0 else destId} is not in the graph."
+            )
 
     def add_node(self, *args, **kwargs):
         """Add a node with default or explicit labels"""
@@ -106,8 +148,8 @@ class MogwaiGraph (networkx.DiGraph):
         else:
             node_id = self.get_next_node_id()
 
-        label = kwargs.pop('labels', {self.config.default_node_label})
-        name = kwargs.pop('name', str(node_id))
+        label = kwargs.pop("labels", {self.config.default_node_label})
+        name = kwargs.pop("name", str(node_id))
         return self.add_labeled_node(label, name, properties=kwargs, node_id=node_id)
 
     def add_edge(self, *args, **kwargs):
@@ -118,36 +160,50 @@ class MogwaiGraph (networkx.DiGraph):
         label = kwargs.pop(self.config.edge_label_field, self.config.default_edge_label)
         return self.add_labeled_edge(src, dst, label, properties=kwargs)
 
-    def _get_nodes_set(self, label:set, name:str):
+    def _get_nodes_set(self, label: set, name: str):
         n_none = name is None
-        if(n_none):
+        if n_none:
             return [n for n in self.nodes(date=True) if label.issubset(n[1]["labels"])]
-        if(not n_none):
-            return [n for n in self.nodes(data=True) if label.issubset(n[1]["labels"]) and n[1]["name"]==name]
+        if not n_none:
+            return [
+                n
+                for n in self.nodes(data=True)
+                if label.issubset(n[1]["labels"]) and n[1]["name"] == name
+            ]
         return self.nodes
 
-    def get_nodes(self, label:str|set, name:str):
-        if type(label) is set: #check if we are looking for multiple labels
-            if(len(label)==0): label = None
-            else: return self._get_nodes_set(label, name)
+    def get_nodes(self, label: str | set, name: str):
+        if type(label) is set:  # check if we are looking for multiple labels
+            if len(label) == 0:
+                label = None
+            else:
+                return self._get_nodes_set(label, name)
 
         l_none, n_none = label is None, name is None
-        if(not l_none and not n_none):
-            return [n for n in self.nodes(data=True) if label in n[1]["labels"] and n[1]["name"]==name]
-        if(l_none and not n_none):
-            return [n for n in self.nodes(data=True) if n[1]["name"]==name]
-        if(not l_none and n_none):
+        if not l_none and not n_none:
+            return [
+                n
+                for n in self.nodes(data=True)
+                if label in n[1]["labels"] and n[1]["name"] == name
+            ]
+        if l_none and not n_none:
+            return [n for n in self.nodes(data=True) if n[1]["name"] == name]
+        if not l_none and n_none:
             return [n for n in self.nodes(date=True) if label in n[1]["labels"]]
         return self.nodes
 
-    def merge_subgraph(self, other:'MogwaiGraph', srcId:int, targetId:int, edgeLabel:str):
+    def merge_subgraph(
+        self, other: "MogwaiGraph", srcId: int, targetId: int, edgeLabel: str
+    ):
         mapping = {k: self.get_next_node_id() for k in other.nodes}
         relabeled = networkx.relabel_nodes(other, mapping, copy=True)
         self.add_nodes_from(relabeled.nodes(data=True))
         self.add_edges_from(relabeled.edges(data=True))
-        self.add_labeled_edge(srcId=srcId, destId=mapping[targetId], edgeLabel=edgeLabel)
+        self.add_labeled_edge(
+            srcId=srcId, destId=mapping[targetId], edgeLabel=edgeLabel
+        )
 
-    def draw(self, outputfile, title:str="MogwaiGraph", **kwargs):
+    def draw(self, outputfile, title: str = "MogwaiGraph", **kwargs):
         """
         Draw the graph using graphviz
         Parameters
@@ -163,7 +219,7 @@ class MogwaiGraph (networkx.DiGraph):
         MogwaiGraphDrawer(self, title=title, **kwargs).draw(outputfile)
 
     @classmethod
-    def modern(cls) -> 'MogwaiGraph':
+    def modern(cls) -> "MogwaiGraph":
         """
         create the modern graph
         see https://tinkerpop.apache.org/docs/current/tutorials/getting-started/
@@ -176,33 +232,69 @@ class MogwaiGraph (networkx.DiGraph):
         ripple = g.add_labeled_node("Software", name="ripple", lang="java")
         peter = g.add_labeled_node("Person", name="peter", age=35)
 
-        g.add_labeled_edge(marko, vadas, "knows",weight=0.5)
-        g.add_labeled_edge(marko, josh, "knows",weight=1.0)
-        g.add_labeled_edge(marko, lop, "created",weight=0.4)
-        g.add_labeled_edge(josh, ripple, "created",weight=1.0)
-        g.add_labeled_edge(josh, lop, "created",weight=0.4)
-        g.add_labeled_edge(peter, lop, "created",weight=0.2)
+        g.add_labeled_edge(marko, vadas, "knows", weight=0.5)
+        g.add_labeled_edge(marko, josh, "knows", weight=1.0)
+        g.add_labeled_edge(marko, lop, "created", weight=0.4)
+        g.add_labeled_edge(josh, ripple, "created", weight=1.0)
+        g.add_labeled_edge(josh, lop, "created", weight=0.4)
+        g.add_labeled_edge(peter, lop, "created", weight=0.2)
         return g
 
     @classmethod
-    def crew(cls) -> 'MogwaiGraph':
+    def crew(cls) -> "MogwaiGraph":
         """
         create the TheCrew example graph
         see TinkerFactory.createTheCrew() in https://tinkerpop.apache.org/docs/current/reference/
         """
         g = MogwaiGraph()
-        def t(startTime:int, endTime:int=None):
+
+        def t(startTime: int, endTime: int = None):
             d = dict()
             d["startTime"] = startTime
             if endTime is not None:
                 d["endTime"] = endTime
             return d
-        marko = g.add_labeled_node("Person", name="marko", location={"san diego":t(1997,2001), "santa cruz":t(2001,2004), "brussels":t(2004,2005), "santa fe":t(2005)})
-        stephen = g.add_labeled_node("Person", name="stephen", location={"centreville":t(1990,2000),"dulles":t(2000,2006), "purcellvilee":t(2006)})
-        matthias = g.add_labeled_node("Person", name="matthias", location={"bremen":t(2004,2007), "baltimore":t(2007,2011), "oakland":t(2011,2014), "seattle":t(2014)})
-        daniel = g.add_labeled_node("Person", name="daniel", location={"spremberg":t(1982,2005), "kaiserslautern":t(2005,2009), "aachen":t(2009)})
+
+        marko = g.add_labeled_node(
+            "Person",
+            name="marko",
+            location={
+                "san diego": t(1997, 2001),
+                "santa cruz": t(2001, 2004),
+                "brussels": t(2004, 2005),
+                "santa fe": t(2005),
+            },
+        )
+        stephen = g.add_labeled_node(
+            "Person",
+            name="stephen",
+            location={
+                "centreville": t(1990, 2000),
+                "dulles": t(2000, 2006),
+                "purcellvilee": t(2006),
+            },
+        )
+        matthias = g.add_labeled_node(
+            "Person",
+            name="matthias",
+            location={
+                "bremen": t(2004, 2007),
+                "baltimore": t(2007, 2011),
+                "oakland": t(2011, 2014),
+                "seattle": t(2014),
+            },
+        )
+        daniel = g.add_labeled_node(
+            "Person",
+            name="daniel",
+            location={
+                "spremberg": t(1982, 2005),
+                "kaiserslautern": t(2005, 2009),
+                "aachen": t(2009),
+            },
+        )
         gremlin = g.add_labeled_node("Software", name="gremlin")
-        tinkergraph = g.add_labeled_node("Software",name="tinkergraph")
+        tinkergraph = g.add_labeled_node("Software", name="tinkergraph")
 
         g.add_labeled_edge(marko, gremlin, "uses", skill=4)
         g.add_labeled_edge(stephen, gremlin, "uses", skill=5)
@@ -220,11 +312,13 @@ class MogwaiGraph (networkx.DiGraph):
         g.add_labeled_edge(matthias, gremlin, "develops", since=2012)
         return g
 
+
 class MogwaiGraphDrawer:
     """
     helper class to draw MogwaiGraphs
     """
-    def __init__(self, g:MogwaiGraph, title:str, **kwargs):
+
+    def __init__(self, g: MogwaiGraph, title: str, **kwargs):
         """
         Parameters
         ----------
@@ -265,46 +359,55 @@ class MogwaiGraphDrawer:
     def _draw_vertex(self, n):
         if len(self.v_drawn) >= self.config.get("v_limit", 10):
             return False
-        if n[0] in self.v_drawn: return None
+        if n[0] in self.v_drawn:
+            return None
         id, properties = n
-        head = f"{id:d}, {properties.pop('name')}\n{', '.join(properties.pop('labels'))}"
+        head = (
+            f"{id:d}, {properties.pop('name')}\n{', '.join(properties.pop('labels'))}"
+        )
         if self.vertex_keys:
             properties = {k: v for k, v in properties.items() if k in self.vertex_keys}
         body = "\n".join([f"{k}: {v}" for k, v in properties.items()])
-        label = f"{head}\n"+("-"*self.config.get("dash_width", 5))+f"\n{body}"
+        label = f"{head}\n" + ("-" * self.config.get("dash_width", 5)) + f"\n{body}"
 
-        self.gviz.add_node(id,
-                    label=label,
-                    fillcolor=self.config.get('fillcolor',"#ADE1FE"),
-                    style='filled',
-                    fontname=self.config.get('fontname',"arial"))
+        self.gviz.add_node(
+            id,
+            label=label,
+            fillcolor=self.config.get("fillcolor", "#ADE1FE"),
+            style="filled",
+            fontname=self.config.get("fontname", "arial"),
+        )
         self.v_drawn.add(id)
         return True
 
-    def _draw_edge(self, e, with_vertices:bool=True):
+    def _draw_edge(self, e, with_vertices: bool = True):
         if len(self.e_drawn) > self.config.get("e_limit", 10):
             return False
-        if e[:-1] in self.e_drawn: return None
+        if e[:-1] in self.e_drawn:
+            return None
         if with_vertices:
-            self._draw_vertex((e[0],self.g.nodes[e[0]]))
+            self._draw_vertex((e[0], self.g.nodes[e[0]]))
             self._draw_vertex((e[1], self.g.nodes[e[1]]))
         head = f"{e[2].pop('labels')}"
         body = "\n".join([f"{k}: {v}" for k, v in e[2].items()])
-        label = f"{head}\n"+("-"*self.config.get("dash_width", 5))+f"\n{body}"
+        label = f"{head}\n" + ("-" * self.config.get("dash_width", 5)) + f"\n{body}"
 
-        self.gviz.add_edge(e[0], e[1],
-                        label=label,
-                        style=f"setlinewidth({self.config.get('edge_line_width', 3)})",
-                        fontname=self.config.get('fontname',"arial"))
+        self.gviz.add_edge(
+            e[0],
+            e[1],
+            label=label,
+            style=f"setlinewidth({self.config.get('edge_line_width', 3)})",
+            fontname=self.config.get("fontname", "arial"),
+        )
         self.e_drawn.add(e[:-1])
 
-    def draw(self, outputfile:str):
+    def draw(self, outputfile: str):
         try:
             import pygraphviz
         except ImportError:
             raise ImportError("Please install pygraphviz to draw graphs.")
 
-        self.gviz:pygraphviz.AGraph = networkx.nx_agraph.to_agraph(self.g)
+        self.gviz: pygraphviz.AGraph = networkx.nx_agraph.to_agraph(self.g)
         for n in self.g.nodes(data=True):
             if self._draw_vertex(n) == False:
                 break

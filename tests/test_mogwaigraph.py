@@ -1,8 +1,7 @@
 import os
-
+import json
 from mogwai.core.exceptions import MogwaiGraphError
 from mogwai.core.mogwaigraph import MogwaiGraph, MogwaiGraphConfig
-
 from tests.basetest import BaseTest
 
 
@@ -10,6 +9,7 @@ class TestMogwaiGraph(BaseTest):
     """
     tests for MogwaiGraph core functionality
     """
+
     def setUp(self, debug=True, profile=True):
         BaseTest.setUp(self, debug=debug, profile=profile)
         self.G = MogwaiGraph()
@@ -71,14 +71,16 @@ class TestMogwaiGraph(BaseTest):
         """
         see https://github.com/juupje/pyMogwai/issues/12
         """
-        g=MogwaiGraph()
+        g = MogwaiGraph()
         # Should work with standard networkx API when lenient
         node_id = g.add_node(1, weight=0.4)
-        self.assertEqual(g.nodes[node_id][g.config.label_field], {g.config.default_node_label})
+        self.assertEqual(
+            g.nodes[node_id][g.config.label_field], {g.config.default_node_label}
+        )
 
         # Should work with explicit labels too
-        labeled_node = g.add_node(2, labels={'Person'}, name='Bob')
-        self.assertEqual(g.nodes[labeled_node][g.config.label_field], {'Person'})
+        labeled_node = g.add_node(2, labels={"Person"}, name="Bob")
+        self.assertEqual(g.nodes[labeled_node][g.config.label_field], {"Person"})
 
     def test_configurable_reserved_names(self):
         """
@@ -87,22 +89,60 @@ class TestMogwaiGraph(BaseTest):
         """
         test_cases = [
             # (config name_field, property to use, should_pass)
-            ('_name', 'name', True),     # non-reserved name should work
-            ('_name', '_name', False),   # using reserved name should fail
-            ('name', '_name', True),     # when name is reserved, _name should work
-            ('name', 'name', False),     # using reserved name should fail
-            ('name2', '_name', True),    # neither reserved, should work
-            ('name2', 'name', True)      # neither reserved, should work
+            ("_name", "name", True),  # non-reserved name should work
+            ("_name", "_name", False),  # using reserved name should fail
+            ("name", "_name", True),  # when name is reserved, _name should work
+            ("name", "name", False),  # using reserved name should fail
+            ("name2", "_name", True),  # neither reserved, should work
+            ("name2", "name", True),  # neither reserved, should work
         ]
 
         for i, (name_field, prop_name, should_pass) in enumerate(test_cases):
-            with self.subTest(f"config:{name_field} using:{prop_name} expect:{'pass' if should_pass else 'fail'}"):
+            with self.subTest(
+                f"config:{name_field} using:{prop_name} expect:{'pass' if should_pass else 'fail'}"
+            ):
                 config = MogwaiGraphConfig(name_field=name_field)
                 g = MogwaiGraph(config=config)
                 props = {prop_name: f"value{i}"}
                 if should_pass:
-                    node_id = g.add_labeled_node('TestLabel', 'test', properties=props)
+                    node_id = g.add_labeled_node("TestLabel", "test", properties=props)
                     self.assertEqual(g.nodes[node_id][prop_name], f"value{i}")
                 else:
                     with self.assertRaises(MogwaiGraphError):
-                        g.add_labeled_node('TestLabel', 'test', properties=props)
+                        g.add_labeled_node("TestLabel", "test", properties=props)
+
+    def test_spog_index_issue13(self):
+        """
+        Test the index handling.
+        """
+        g = MogwaiGraph.modern()
+        ps_lookup = g.spog_index.get_lookup("P", "S")
+        self.assertIsNotNone(ps_lookup)
+
+        debug=self.debug
+        debug=True
+        if debug:
+            for index_name in g.spog_index.config.active_indices:
+                index = g.spog_index.indices.get(index_name)
+                if index:
+                    print(f"Index: {index_name}")
+                    print(json.dumps(index.lookup,indent=2,default=str))
+
+        # Check that `label` in `PS` has references to all nodes
+        self.assertEqual(ps_lookup.get("label"), {0, 1, 2, 3, 4, 5})
+
+        # Check that specific labels and names exist in `PO`
+        po_lookup = g.spog_index.get_lookup("P", "O")
+        self.assertEqual(po_lookup.get("label"), {"{'Person'}", "{'Software'}"})
+        self.assertEqual(po_lookup.get("name"), {"marko", "vadas", "josh", "peter", "lop", "ripple"})
+
+        # Check `OS` for expected mappings
+        os_lookup = g.spog_index.get_lookup("O", "S")
+        self.assertEqual(os_lookup.get("{'Person'}"), {0, 1, 3, 5})
+        self.assertEqual(os_lookup.get("{'Software'}"), {2, 4})
+        self.assertEqual(os_lookup.get("java"), {2, 4})
+
+        # Check `SP` for node attributes
+        sp_lookup = g.spog_index.get_lookup("S", "P")
+        self.assertEqual(sp_lookup.get(0), {"label", "name", "age"})
+        self.assertEqual(sp_lookup.get(2), {"label", "name", "lang"})

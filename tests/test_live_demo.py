@@ -1,6 +1,9 @@
 import unittest
+
 from mogwai.core.traversal import MogwaiGraphTraversalSource
+
 from .basetest import BaseTest
+
 
 class TestLiveDemo(BaseTest):
     def setUp(self):

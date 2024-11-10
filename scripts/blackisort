@@ -1,6 +1,6 @@
 #!/bin/bash
 # WF 2024-08-15
-package=mogwai
+package=mogwai/core
 isort tests/*.py
 black tests/*.py
 isort $package/*.py

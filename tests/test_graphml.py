@@ -6,6 +6,9 @@ from .basetest import BaseTest
 
 
 class TestGraphml(BaseTest):
+    """
+    test graphml handling
+    """
     def setUp(self):
         super().setUp()
         # Initialize a sample file system structure for testing

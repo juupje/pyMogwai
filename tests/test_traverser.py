@@ -225,7 +225,7 @@ class TestTraverser(BaseTest):
         query = g.addE("knows").from_(john).to_(vadas).property("likes", True).iterate()
         print(f"Query: {query.print_query()}")
         query.run()
-        query = g.E().properties('likes').next()
+        query = g.E().properties("likes").next()
         print(f"Query: {query.print_query()}")
         res = query.run()
         print(f"Result: {res}")

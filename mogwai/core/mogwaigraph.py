@@ -1,7 +1,9 @@
 from dataclasses import dataclass
 from typing import Any, Hashable, Optional
-from mogwai.core.hd_index import SPOGIndex,IndexConfigs, Quad
+
 import networkx
+
+from mogwai.core.hd_index import IndexConfigs, Quad, SPOGIndex
 
 from .exceptions import MogwaiGraphError
 
@@ -51,7 +53,14 @@ class MogwaiGraph(networkx.DiGraph):
         self.counter += 1
         return node_id
 
-    def add_to_index(self, element_type:str, subject_id: Hashable, label: set, name: str, properties: dict):
+    def add_to_index(
+        self,
+        element_type: str,
+        subject_id: Hashable,
+        label: set,
+        name: str,
+        properties: dict,
+    ):
         """
         Add labels, name, and properties to the SPOG index for a
         given subject and element_type
@@ -79,9 +88,10 @@ class MogwaiGraph(networkx.DiGraph):
         for prop_name, prop_value in properties.items():
             if not isinstance(prop_value, Hashable):
                 prop_value = str(prop_value)  # Ensure property value is hashable
-            property_quad = Quad(s=subject_id, p=prop_name, o=prop_value, g=f"{element_type}-property")
+            property_quad = Quad(
+                s=subject_id, p=prop_name, o=prop_value, g=f"{element_type}-property"
+            )
             self.spog_index.add_quad(property_quad)
-
 
     def add_labeled_node(
         self,
@@ -133,7 +143,7 @@ class MogwaiGraph(networkx.DiGraph):
         }
         super().add_node(node_id, **node_props)
         # Use add_to_index to add label, name, and properties as quads
-        self.add_to_index("node",node_id, label, name, properties)
+        self.add_to_index("node", node_id, label, name, properties)
         return node_id
 
     def add_labeled_edge(
@@ -244,13 +254,13 @@ class MogwaiGraph(networkx.DiGraph):
         MogwaiGraphDrawer(self, title=title, **kwargs).draw(outputfile)
 
     @classmethod
-    def modern(cls,index_config="off") -> "MogwaiGraph":
+    def modern(cls, index_config="off") -> "MogwaiGraph":
         """
         create the modern graph
         see https://tinkerpop.apache.org/docs/current/tutorials/getting-started/
         """
-        config=MogwaiGraphConfig
-        config.index_config=index_config
+        config = MogwaiGraphConfig
+        config.index_config = index_config
         g = MogwaiGraph(config=config)
         marko = g.add_labeled_node("Person", name="marko", age=29)
         vadas = g.add_labeled_node("Person", name="vadas", age=27)

@@ -1,5 +1,6 @@
-import os
 import json
+import os
+
 from mogwai.core.exceptions import MogwaiGraphError
 from mogwai.core.mogwaigraph import MogwaiGraph, MogwaiGraphConfig
 from tests.basetest import BaseTest
@@ -121,7 +122,7 @@ class TestMogwaiGraph(BaseTest):
         self.assertIsNotNone(ps_lookup)
 
         debug = self.debug
-        #debug = True
+        # debug = True
         if debug:
             for index_name in g.spog_index.config.active_indices:
                 index = g.spog_index.indices.get(index_name)
@@ -134,8 +135,13 @@ class TestMogwaiGraph(BaseTest):
 
         # Check specific labels and names in `PO`
         po_lookup = g.spog_index.get_lookup("P", "O")
-        self.assertEqual(po_lookup.get("label"), {"Person", "Software", "knows", "created"})
-        self.assertEqual(po_lookup.get("name"), {"ripple", "knows", "created", "peter", "josh", "lop", "marko", "vadas"})
+        self.assertEqual(
+            po_lookup.get("label"), {"Person", "Software", "knows", "created"}
+        )
+        self.assertEqual(
+            po_lookup.get("name"),
+            {"ripple", "knows", "created", "peter", "josh", "lop", "marko", "vadas"},
+        )
 
         # Check `OS` for expected mappings
         os_lookup = g.spog_index.get_lookup("O", "S")
@@ -145,13 +151,19 @@ class TestMogwaiGraph(BaseTest):
 
         # Check `SO` for node attribute and edge mappings
         so_lookup = g.spog_index.get_lookup("S", "O")
-        self.assertEqual(so_lookup.get(0), {0.5, 1, 2, 3, 0.4, "marko", "knows", "Person", "created", 29})
+        self.assertEqual(
+            so_lookup.get(0),
+            {0.5, 1, 2, 3, 0.4, "marko", "knows", "Person", "created", 29},
+        )
         self.assertEqual(so_lookup.get(2), {"lop", "java", "Software"})
 
         # Check `GO` for graph-level object mappings
         go_lookup = g.spog_index.get_lookup("G", "O")
         self.assertEqual(go_lookup.get("node-label"), {"Person", "Software"})
-        self.assertEqual(go_lookup.get("node-name"), {"marko", "vadas", "josh", "peter", "lop", "ripple"})
+        self.assertEqual(
+            go_lookup.get("node-name"),
+            {"marko", "vadas", "josh", "peter", "lop", "ripple"},
+        )
         self.assertEqual(go_lookup.get("node-property"), {32, 35, "java", 27, 29})
         self.assertEqual(go_lookup.get("edge-link"), {1, 2, 3, 4})
         self.assertEqual(go_lookup.get("edge-label"), {"created", "knows"})

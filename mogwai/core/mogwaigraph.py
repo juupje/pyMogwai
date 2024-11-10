@@ -238,6 +238,29 @@ class MogwaiGraph(networkx.DiGraph):
             srcId=srcId, destId=mapping[targetId], edgeLabel=edgeLabel
         )
 
+    def join(self, from_label: str, to_label: str, join_field: str, target_key: str, edge_label: str):
+        """Joins two node types by field values and creates edges between them."""
+        node_lookup = self.spog_index.get_lookup('P', 'O')
+        if not node_lookup:
+            raise ValueError("No SPOG index available")
+
+        field_values = node_lookup.get(join_field)
+        if field_values is None:
+            raise ValueError(f"Join field {join_field} not found in index")
+
+        target_values = node_lookup.get(target_key)
+        if target_values is None:
+            raise ValueError(f"Target key {target_key} not found in index")
+
+        os_lookup = self.spog_index.get_lookup('O', 'S')
+        for source_id in os_lookup.get(from_label, set()):
+            source_value = self.nodes[source_id][join_field]
+            target_ids = os_lookup.get(source_value, set())
+            for target_id in target_ids:
+                if to_label in self.nodes[target_id].get('labels',[]):
+                    self.add_labeled_edge(source_id, target_id, edge_label)
+
+
     def draw(self, outputfile, title: str = "MogwaiGraph", **kwargs):
         """
         Draw the graph using graphviz

@@ -95,6 +95,8 @@ class Index:
         """Add a quad to this index's lookup using quad positions"""
         from_val = getattr(quad, self.from_pos.lower())
         to_val = getattr(quad, self.to_pos.lower())
+        if not isinstance(from_val, Hashable):
+            pass
 
         if from_val not in self.lookup:
             self.lookup[from_val] = set()

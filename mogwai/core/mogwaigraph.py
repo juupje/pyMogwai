@@ -20,6 +20,7 @@ class MogwaiGraphConfig:
     default_node_label: str = "Node"
     default_edge_label: str = "Edge"
     index_config: str = "off"
+    single_label: bool = True
 
 
 class MogwaiGraph(networkx.DiGraph):
@@ -57,7 +58,7 @@ class MogwaiGraph(networkx.DiGraph):
         self,
         element_type: str,
         subject_id: Hashable,
-        label: set,
+        label: str,
         name: str,
         properties: dict,
     ):
@@ -68,17 +69,16 @@ class MogwaiGraph(networkx.DiGraph):
         Args:
             element_type: (str): node or edge
             subject_id (Hashable): The ID of the subject (node or edge).
-            label (set): Set of labels for the subject.
+            label (str): the label for the subject.
             name (str): Name of the subject.
             properties (dict): Dictionary of additional properties to index.
         """
         # only index if the config calls for it
         if self.config.index_config == "off":
             return
-        # Add quads for each label with g="label"
-        for lbl in label:
-            label_quad = Quad(s=subject_id, p="label", o=lbl, g=f"{element_type}-label")
-            self.spog_index.add_quad(label_quad)
+        # Add quads for label with g="label"
+        label_quad = Quad(s=subject_id, p="label", o=label, g=f"{element_type}-label")
+        self.spog_index.add_quad(label_quad)
 
         # Add quad for name with g="name"
         name_quad = Quad(s=subject_id, p="name", o=name, g=f"{element_type}-name")
@@ -95,7 +95,7 @@ class MogwaiGraph(networkx.DiGraph):
 
     def add_labeled_node(
         self,
-        label: set | str,
+        label: str,
         name: str,
         properties: dict = None,
         node_id: Optional[str] = None,
@@ -108,7 +108,7 @@ class MogwaiGraph(networkx.DiGraph):
         might occur multiple times we use incremented node ids if no node_id is provided
 
         Args:
-            label (Union[set, str]): The label or set of labels for the node.
+            label (str): The label for the node.
             name (str): The name of the node.
             properties (dict, optional): Additional properties for the node. Defaults to None.
             node_id (Optional[int], optional): The ID for the node. If not provided, a new ID will be generated. Defaults to None.
@@ -119,11 +119,6 @@ class MogwaiGraph(networkx.DiGraph):
         Raises:
             MogwaiGraphError: If a node with the provided ID already exists in the graph.
         """
-        label = (
-            label
-            if isinstance(label, set)
-            else (set(label) if isinstance(label, (list, tuple)) else {label})
-        )
         if node_id is None:
             node_id = self.get_next_node_id()
         properties = properties or {}
@@ -170,7 +165,7 @@ class MogwaiGraph(networkx.DiGraph):
             self.spog_index.add_quad(edge_quad)
 
             # Use add_to_index to add label, name, and properties as quads
-            self.add_to_index("edge", srcId, {edgeLabel}, edgeLabel, properties)
+            self.add_to_index("edge", srcId, edgeLabel, edgeLabel, properties)
         else:
             raise MogwaiGraphError(
                 f"Node with id {srcId if srcId<0 else destId} is not in the graph."
@@ -183,7 +178,7 @@ class MogwaiGraph(networkx.DiGraph):
         else:
             node_id = self.get_next_node_id()
 
-        label = kwargs.pop("labels", {self.config.default_node_label})
+        label = kwargs.pop("labels", self.config.default_node_label)
         name = kwargs.pop("name", str(node_id))
         return self.add_labeled_node(label, name, properties=kwargs, node_id=node_id)
 
@@ -207,13 +202,10 @@ class MogwaiGraph(networkx.DiGraph):
             ]
         return self.nodes
 
-    def get_nodes(self, label: str | set, name: str):
-        if type(label) is set:  # check if we are looking for multiple labels
-            if len(label) == 0:
-                label = None
-            else:
-                return self._get_nodes_set(label, name)
-
+    def get_nodes(self, label: str, name: str):
+        """
+        @FIXME - this is ugly code
+        """
         l_none, n_none = label is None, name is None
         if not l_none and not n_none:
             return [
@@ -253,9 +245,9 @@ class MogwaiGraph(networkx.DiGraph):
             raise ValueError(f"Target key {target_key} not found in index")
 
         os_lookup = self.spog_index.get_lookup('O', 'S')
-        for source_id in os_lookup.get(from_label, set()):
+        for source_id in os_lookup.get(from_label):
             source_value = self.nodes[source_id][join_field]
-            target_ids = os_lookup.get(source_value, set())
+            target_ids = os_lookup.get(source_value)
             for target_id in target_ids:
                 if to_label in self.nodes[target_id].get('labels',[]):
                     self.add_labeled_edge(source_id, target_id, edge_label)

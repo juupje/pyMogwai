@@ -1,9 +1,9 @@
 import os
 
 from mogwai.parser.graphml_converter import graphml_to_mogwaigraph
-
-from .basetest import BaseTest
-
+from mogwai.core.mogwaigraph import MogwaiGraph
+from tests.basetest import BaseTest
+import networkx as nx
 
 class TestGraphml(BaseTest):
     """
@@ -40,6 +40,22 @@ class TestGraphml(BaseTest):
         )
         g.draw(os.path.join(self.root_path, "tests", "test_gml.svg"), prog="dot")
 
+    def test_graphml_set_serialization(self):
+        """
+        see https://github.com/juupje/pyMogwai/issues/15
+
+        Test that demonstrates the GraphML serialization
+        issue with Python sets
+        in node properties using the Modern graph example.
+        """
+        # Create the Modern graph instance
+        graph = MogwaiGraph.modern()
+        output_path=os.path.join("/tmp", "modern_mogwai.graphml")
+
+        nx.write_graphml(graph, output_path,
+                           encoding='utf-8',
+                           prettyprint=True,
+                           infer_numeric_types=True)
 
 if __name__ == "__main__":
     import unittest

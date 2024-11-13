@@ -1,5 +1,5 @@
 import os
-
+import unittest
 from ngwidgets.basetest import Basetest
 
 from mogwai.graphs import Graphs
@@ -23,3 +23,6 @@ class BaseTest(Basetest):
             os.path.dirname(self.script_dir), "mogwai_examples"
         )
         self.root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+if __name__ == "__main__":
+    unittest.main()

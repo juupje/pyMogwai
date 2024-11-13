@@ -76,12 +76,12 @@ class TestMogwaiGraph(BaseTest):
         # Should work with standard networkx API when lenient
         node_id = g.add_node(1, weight=0.4)
         self.assertEqual(
-            g.nodes[node_id][g.config.label_field], {g.config.default_node_label}
+            g.nodes[node_id][g.config.label_field], g.config.default_node_label
         )
 
         # Should work with explicit labels too
-        labeled_node = g.add_node(2, labels={"Person"}, name="Bob")
-        self.assertEqual(g.nodes[labeled_node][g.config.label_field], {"Person"})
+        labeled_node = g.add_node(2, labels="Person", name="Bob")
+        self.assertEqual(g.nodes[labeled_node][g.config.label_field], "Person")
 
     def test_configurable_reserved_names(self):
         """

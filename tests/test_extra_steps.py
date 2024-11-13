@@ -8,8 +8,11 @@ from tests.basetest import BaseTest
 
 
 class TestSteps(BaseTest):
-    def setUp(self):
-        super().setUp()
+    """
+    test steps
+    """
+    def setUp(self, debug=True, profile=True):
+        BaseTest.setUp(self, debug=debug, profile=profile)
         self.file_system = FSG(self.root_path)
         self.modern = MogwaiGraph.modern()
         self.crew = MogwaiGraph.crew()
@@ -113,16 +116,21 @@ class TestSteps(BaseTest):
         self.assertTrue(len(res) == 1, "Incorrect query result!")
 
     def test_element_map(self):
+        """
+        test the element_map step
+        """
         g = Trav.MogwaiGraphTraversalSource(self.modern)
         query = g.V(0).element_map().to_list()
-        print("Query:", query.print_query())
+        if self.debug:
+            print("Query:", query.print_query())
         res = query.run()
-        print("Result:", res)
+        if self.debug:
+            print("Result:", res)
         self.assertTrue(len(res) == 1, "Query should have returned only one result")
-        self.assertEqual(res[0], {"labels": {"Person"}, "name": "marko", "age": 29})
-
-
-if __name__ == "__main__":
-    import unittest
-
-    unittest.main()
+        self.assertEqual(res[0],
+            {
+                "labels": "Person",
+                "name": "marko",
+                "age": 29
+            }
+        )

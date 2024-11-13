@@ -5,6 +5,7 @@ from mogwai.parser.graphml_converter import graphml_to_mogwaigraph
 from mogwai.core.mogwaigraph import MogwaiGraph
 from tests.basetest import BaseTest
 import networkx as nx
+import uuid
 
 class TestGraphml(BaseTest):
     """
@@ -54,7 +55,7 @@ class TestGraphml(BaseTest):
         """
         # Create the Modern graph instance
         graph = MogwaiGraph.modern()
-        output_path = os.path.join("/tmp", "modern_mogwai.graphml")
+        output_path = os.path.join("/tmp", f"modern_mogwai_{uuid.uuid4().hex}.graphml")
 
         # Record the current time to compare with the file's timestamp
         pre_creation_time = time.time()

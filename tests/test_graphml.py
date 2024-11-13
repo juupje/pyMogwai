@@ -1,4 +1,5 @@
 import os
+import time
 
 from mogwai.parser.graphml_converter import graphml_to_mogwaigraph
 from mogwai.core.mogwaigraph import MogwaiGraph
@@ -40,24 +41,47 @@ class TestGraphml(BaseTest):
         )
         g.draw(os.path.join(self.root_path, "tests", "test_gml.svg"), prog="dot")
 
-    def test_graphml_set_serialization(self):
+    def test_graphml_serialization_round_trip(self):
         """
-        see https://github.com/juupje/pyMogwai/issues/15
-
         Test that demonstrates the GraphML serialization
-        issue with Python sets
-        in node properties using the Modern graph example.
+        the Modern graph example, using a round-trip test.
+
+        should fix #15 issue with sets by using string labels
         """
         # Create the Modern graph instance
         graph = MogwaiGraph.modern()
-        output_path=os.path.join("/tmp", "modern_mogwai.graphml")
+        output_path = os.path.join("/tmp", "modern_mogwai.graphml")
 
+        # Record the current time to compare with the file's timestamp
+        pre_creation_time = time.time()
+
+        # Write the graph to GraphML format
         nx.write_graphml(graph, output_path,
-                           encoding='utf-8',
-                           prettyprint=True,
-                           infer_numeric_types=True)
+                         encoding='utf-8',
+                         prettyprint=True,
+                         infer_numeric_types=True)
 
-if __name__ == "__main__":
-    import unittest
+        # Assert that the file was created
+        self.assertTrue(os.path.exists(output_path), "GraphML file was not created.")
 
-    unittest.main()
+        # Assert that the file size is greater than zero
+        file_size = os.path.getsize(output_path)
+        self.assertGreater(file_size, 1900, "GraphML file size is zero, indicating an empty file.")
+
+        # Verify the file's creation timestamp is after the recorded time
+        file_creation_time = os.path.getmtime(output_path)
+        self.assertGreaterEqual(file_creation_time, pre_creation_time,
+                                "GraphML file timestamp is incorrect, indicating it wasn't created during the test.")
+
+
+        # Read the graph back from the file
+        loaded_graph = nx.read_graphml(output_path)
+
+        # Check that node properties are preserved correctly
+        for node in graph.nodes:
+            for key in graph.nodes[node]:
+                original_value = graph.nodes[node][key]
+                loaded_value = loaded_graph.nodes[node][key]
+
+                self.assertEqual(original_value, loaded_value,
+                                 f"Mismatch in node property '{key}' for node '{node}'")

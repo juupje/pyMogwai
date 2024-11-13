@@ -46,7 +46,16 @@ class MogwaiGraph(networkx.DiGraph):
         index_config = IndexConfigs[self.config.index_config.upper()].get_config()
         self.spog_index = SPOGIndex(index_config)
 
-    def get_next_node_id(self):
+    def get_next_node_id_fixed(self)->str:
+        """
+        get the next node_id
+        """
+        node_id = self.counter
+        self.counter += 1
+        node_id_str=str(node_id)
+        return node_id_str
+
+    def get_next_node_id(self)->int:
         """
         get the next node_id
         """

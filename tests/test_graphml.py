@@ -57,8 +57,6 @@ class TestGraphml(BaseTest):
         graph = MogwaiGraph.modern()
         output_path = os.path.join("/tmp", f"modern_mogwai_{uuid.uuid4().hex}.graphml")
 
-        # Record the current time to compare with the file's timestamp
-        pre_creation_time = time.time()
 
         # Write the graph to GraphML format
         nx.write_graphml(graph, output_path,
@@ -74,9 +72,9 @@ class TestGraphml(BaseTest):
         self.assertGreater(file_size, 1900, "GraphML file size is zero, indicating an empty file.")
 
         # Verify the file's creation timestamp is after the recorded time
-        file_creation_time = os.path.getmtime(output_path)
-        self.assertGreaterEqual(file_creation_time, pre_creation_time,
-                                "GraphML file timestamp is incorrect, indicating it wasn't created during the test.")
+        creation_time = os.path.getmtime(output_path)
+        current_time = time.time()
+        self.assertLessEqual(current_time - creation_time, 1, "GraphML file timestamp for {output_path} is incorrect, indicating it wasn't created during the test.")
 
 
         # Read the graph back from the file

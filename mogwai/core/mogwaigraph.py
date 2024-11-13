@@ -46,7 +46,7 @@ class MogwaiGraph(networkx.DiGraph):
         index_config = IndexConfigs[self.config.index_config.upper()].get_config()
         self.spog_index = SPOGIndex(index_config)
 
-    def get_next_node_id_fixed(self)->str:
+    def get_next_node_id(self)->str:
         """
         get the next node_id
         """
@@ -54,14 +54,6 @@ class MogwaiGraph(networkx.DiGraph):
         self.counter += 1
         node_id_str=str(node_id)
         return node_id_str
-
-    def get_next_node_id(self)->int:
-        """
-        get the next node_id
-        """
-        node_id = self.counter
-        self.counter += 1
-        return node_id
 
     def add_to_index(
         self,
@@ -177,7 +169,7 @@ class MogwaiGraph(networkx.DiGraph):
             self.add_to_index("edge", srcId, edgeLabel, edgeLabel, properties)
         else:
             raise MogwaiGraphError(
-                f"Node with id {srcId if srcId<0 else destId} is not in the graph."
+                f"Node with srcId {srcId} or destId {destId} is not in the graph."
             )
 
     def add_node(self, *args, **kwargs):
@@ -424,7 +416,7 @@ class MogwaiGraphDrawer:
             return None
         id, properties = n
         head = (
-            f"{id:d}, {properties.pop('name')}\n{', '.join(properties.pop('labels'))}"
+            f"{id}, {properties.pop('name')}\n{', '.join(properties.pop('labels'))}"
         )
         if self.vertex_keys:
             properties = {k: v for k, v in properties.items() if k in self.vertex_keys}
@@ -463,6 +455,10 @@ class MogwaiGraphDrawer:
         self.e_drawn.add(e[:-1])
 
     def draw(self, outputfile: str):
+        """
+        draw the given graphviz markup from the given output file using
+        the graphviz "dot" software
+        """
         try:
             import pygraphviz
         except ImportError:

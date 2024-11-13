@@ -120,7 +120,7 @@ class TestSteps(BaseTest):
         test the element_map step
         """
         g = Trav.MogwaiGraphTraversalSource(self.modern)
-        query = g.V(0).element_map().to_list()
+        query = g.V("0").element_map().to_list()
         if self.debug:
             print("Query:", query.print_query())
         res = query.run()

@@ -1,10 +1,8 @@
-import unittest
-
 import mogwai.core.traversal as Trav
 from mogwai.core import MogwaiGraph, Traverser
 from mogwai.parser.filesystem import FileSystemGraph as FSG
 
-from .basetest import BaseTest
+from tests.basetest import BaseTest
 
 
 class TestTraverser(BaseTest):
@@ -214,25 +212,27 @@ class TestTraverser(BaseTest):
     """
 
     def test_addV_and_addE(self):
+        """
+        test add Vertices and Edges
+        """
         g = Trav.MogwaiGraphTraversalSource(self.modern)
         query = g.addV("Person", name="john", age=30).next()
-        print(f"Query: {query.print_query()}")
+        if self.debug:
+            print(f"Query: {query.print_query()}")
         john = query.run()
-        print(f"Result: {john}")
+        if self.debug:
+            print(f"Result: {john}")
         self.assertEqual(g.V().count().next().run(), 7, "Node not added to graph")
 
         vadas = g.V().has_name("vadas").next().run()
         query = g.addE("knows").from_(john).to_(vadas).property("likes", True).iterate()
-        print(f"Query: {query.print_query()}")
+        if self.debug:
+            print(f"Query: {query.print_query()}")
         query.run()
         query = g.E().properties("likes").next()
-        print(f"Query: {query.print_query()}")
+        if self.debug:
+            print(f"Query: {query.print_query()}")
         res = query.run()
-        print(f"Result: {res}")
+        if self.debug:
+            print(f"Result: {res}")
         self.assertEqual(res, {"likes": True}, "Node not added to graph")
-
-
-if __name__ == "__main__":
-    import unittest
-
-    unittest.main()

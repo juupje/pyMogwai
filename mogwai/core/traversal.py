@@ -19,8 +19,8 @@ class Traversal:
     """
     see https://tinkerpop.apache.org/javadocs/3.7.3/core/org/apache/tinkerpop/gremlin/process/traversal/Traversal.html
     A Traversal represents a directed walk over a Graph.
-    This is the base interface for all traversal's,
-    where each extending interface is seen as a domain
+    This is the base sterface for all traversal's,
+    where each extending sterface is seen as a domain
     specific language. For example, GraphTraversal
     is a domain specific language for traversing a graph
     using "graph concepts" (e.g. vertices, edges).
@@ -114,7 +114,7 @@ class Traversal:
         self._add_step(HasValue(self, *values))
         return self
 
-    def has_id(self, *ids: int | tuple) -> "Traversal":
+    def has_id(self, *ids: str | tuple) -> "Traversal":
         from .steps.filter_steps import HasId
 
         self._add_step(HasId(self, *ids))
@@ -544,11 +544,11 @@ class Traversal:
             )
         return self
 
-    def from_(self, src: int) -> "Traversal":
+    def from_(self, src: str) -> "Traversal":
         prev_step = self.query_steps[-1]
         if prev_step.supports_fromto:
-            if type(src) is not int:
-                raise QueryError("Invalid source type for from-modulation")
+            if type(src) is not str:
+                raise QueryError("Invalid source type for from-modulation: str needed!")
             if prev_step.from_ is None:
                 prev_step.from_ = src
             else:
@@ -561,11 +561,11 @@ class Traversal:
             )
         return self
 
-    def to_(self, dest: int) -> "Traversal":
+    def to_(self, dest: str) -> "Traversal":
         prev_step = self.query_steps[-1]
         if prev_step.supports_fromto:
-            if type(dest) is not int:
-                raise QueryError("Invalid source type for to-modulation")
+            if type(dest) is not str:
+                raise QueryError("Invalid source type for to-modulation: str needed!")
             if prev_step.to_ is None:
                 prev_step.to_ = dest
             else:
@@ -709,15 +709,16 @@ class Traversal:
                 + " Probably you are performing a step that can only be executed on graph elements on a value or property traverser."
             )
 
-    def _get_element_from_id(self, element_id: int | tuple):
-        return (
-            self.graph.nodes[element_id]
-            if type(element_id) is int
-            else self.graph.edges[element_id]
-        )
+    def _get_element_from_id(self, element_id: str | tuple):
+        if isinstance(element_id, tuple):
+            node = self.graph.edges[element_id]
+        else:
+            node = self.graph.nodes[element_id]
+        return node
 
     def print_query(self) -> str:
-        return " -> ".join([x.print_query() for x in self.query_steps])
+        text= " -> ".join([x.print_query() for x in self.query_steps])
+        return text
 
     def __str__(self) -> str:
         return self.print_query()

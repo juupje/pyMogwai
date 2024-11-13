@@ -24,7 +24,9 @@ class Traverser:
     """
 
     def __init__(
-        self, node_id: int, other_node_id: int = None, track_path: bool = True
+        self, node_id: str,
+        other_node_id: str = None,
+        track_path: bool = True
     ):  # TODO set `track_path` default to False
         self.node_id = node_id
         self.track_path = track_path
@@ -32,18 +34,18 @@ class Traverser:
         self.cache = {"__store__": {}}
         self.path = [self.get] if track_path else None
 
-    def move_to_edge(self, source: int, target: int) -> None:
+    def move_to_edge(self, source: str, target: str) -> None:
         self.node_id = source
         self.target = target
         if self.track_path:
             self.path.append((source, target))
 
     @property
-    def get(self) -> int | tuple:
+    def get(self) -> str | tuple:
         return (self.node_id, self.target) if self.is_edge else self.node_id
 
     @property
-    def source(self) -> int:
+    def source(self) -> str:
         return self.node_id
 
     @property
@@ -75,7 +77,7 @@ class Traverser:
         assert key != "__store__", "`__store__` is a reserved key"
         self.cache[key] = val
 
-    def move_to(self, node_id: int) -> "Traverser":
+    def move_to(self, node_id: str) -> "Traverser":
         # logging.debug("Moving traverser from", self.get, "to", node_id)
         self.node_id = node_id
         self.target = None
@@ -91,7 +93,7 @@ class Traverser:
         t.path = deepcopy(self.path)
         return t
 
-    def copy_to(self, node_id: int, other_node_id: int = None) -> "Traverser":
+    def copy_to(self, node_id: str, other_node_id: str = None) -> "Traverser":
         t = self.copy()
         if other_node_id:
             t.move_to_edge(node_id, other_node_id)

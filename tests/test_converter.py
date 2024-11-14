@@ -5,8 +5,9 @@ from tests.basetest import BaseTest
 
 class TestConverters(BaseTest):
     """
-    test powerpoint and excel convertes
+    test powerpoint and excel converters
     """
+
     def test_pp_converter(self):
         from mogwai.parser.powerpoint_converter import ppt_to_dic
 
@@ -26,4 +27,3 @@ class TestConverters(BaseTest):
         self.assertEqual(creator, "Marcel Grün", "wrong creator")
         self.assertEqual(s1c1v1, "a3", "wrong cell value")
         print("test_excel_converter successfully")
-

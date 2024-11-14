@@ -1,7 +1,6 @@
 import os
 
 from mogwai.parser.powerpoint_converter import PPGraph
-
 from tests.basetest import BaseTest
 
 

@@ -269,6 +269,8 @@ class TestGraphSchema(BaseTest):
         try:
             rdf_graph.parse(data=rdf_turtle, format="turtle")
             # Check if parsing was successful
-            self.assertGreater(len(rdf_graph), 0, "Parsed RDF graph should contain triples.")
+            self.assertGreater(
+                len(rdf_graph), 0, "Parsed RDF graph should contain triples."
+            )
         except Exception as e:
             self.fail(f"RDF parsing failed: {e}")

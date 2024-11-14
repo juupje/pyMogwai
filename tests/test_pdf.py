@@ -1,7 +1,6 @@
 import os
 
 from mogwai.parser import PDFGraph
-
 from tests.basetest import BaseTest
 
 
@@ -24,4 +23,3 @@ class TestPDF(BaseTest):
             "Discussion at wrong place",
         )
         graph.draw(os.path.join(self.root_path, "tests", "pdf_test.svg"), prog="dot")
-

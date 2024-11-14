@@ -3,7 +3,6 @@ import unittest
 from timeit import default_timer as timer
 
 from mogwai.core.steps.statics import Scope as MogwaiScope
-
 from tests.basetest import BaseTest
 
 

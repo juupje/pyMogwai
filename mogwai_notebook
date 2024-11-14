@@ -1,0 +1,17 @@
+#!/bin/bash
+NOTEBOOK_DIR="mogwai_examples"
+NOTEBOOKS=$(ls $NOTEBOOK_DIR/*.ipynb)
+
+if [ -z "$1" ]; then
+   echo "Usage: ./mogwai_notebook.sh $(echo "$NOTEBOOKS" | sed "s/$NOTEBOOK_DIR\///g" | tr '\n' '|')"
+   exit 1
+fi
+
+# Create and setup environment if it doesn't exist
+if ! conda env list | grep -q "mogwai_env"; then
+   conda create -y -n mogwai_env python=3.10
+   conda run -n mogwai_env conda install -y jupyter pip
+   conda run -n mogwai_env pip install pyMogwai
+fi
+
+conda run -n mogwai_env jupyter notebook $NOTEBOOK_DIR/$1 --NotebookNotary.enabled=False

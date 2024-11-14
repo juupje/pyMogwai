@@ -4,9 +4,11 @@ Created on 2024-11-14
 @author: wf
 """
 
+import os
+
 from mogwai.parser.json_converter import JsonGraph
 from tests.basetest import BaseTest
-import os
+
 
 class TestJsonConverter(BaseTest):
     """

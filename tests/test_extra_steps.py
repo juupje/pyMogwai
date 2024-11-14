@@ -11,6 +11,7 @@ class TestSteps(BaseTest):
     """
     test steps
     """
+
     def setUp(self, debug=True, profile=True):
         BaseTest.setUp(self, debug=debug, profile=profile)
         self.file_system = FSG(self.root_path)
@@ -127,10 +128,4 @@ class TestSteps(BaseTest):
         if self.debug:
             print("Result:", res)
         self.assertTrue(len(res) == 1, "Query should have returned only one result")
-        self.assertEqual(res[0],
-            {
-                "labels": "Person",
-                "name": "marko",
-                "age": 29
-            }
-        )
+        self.assertEqual(res[0], {"labels": "Person", "name": "marko", "age": 29})

@@ -46,13 +46,13 @@ class MogwaiGraph(networkx.DiGraph):
         index_config = IndexConfigs[self.config.index_config.upper()].get_config()
         self.spog_index = SPOGIndex(index_config)
 
-    def get_next_node_id(self)->str:
+    def get_next_node_id(self) -> str:
         """
         get the next node_id
         """
         node_id = self.counter
         self.counter += 1
-        node_id_str=str(node_id)
+        node_id_str = str(node_id)
         return node_id_str
 
     def add_to_index(
@@ -231,9 +231,16 @@ class MogwaiGraph(networkx.DiGraph):
             srcId=srcId, destId=mapping[targetId], edgeLabel=edgeLabel
         )
 
-    def join(self, from_label: str, to_label: str, join_field: str, target_key: str, edge_label: str):
+    def join(
+        self,
+        from_label: str,
+        to_label: str,
+        join_field: str,
+        target_key: str,
+        edge_label: str,
+    ):
         """Joins two node types by field values and creates edges between them."""
-        node_lookup = self.spog_index.get_lookup('P', 'O')
+        node_lookup = self.spog_index.get_lookup("P", "O")
         if not node_lookup:
             raise ValueError("No SPOG index available")
 
@@ -245,14 +252,13 @@ class MogwaiGraph(networkx.DiGraph):
         if target_values is None:
             raise ValueError(f"Target key {target_key} not found in index")
 
-        os_lookup = self.spog_index.get_lookup('O', 'S')
+        os_lookup = self.spog_index.get_lookup("O", "S")
         for source_id in os_lookup.get(from_label):
             source_value = self.nodes[source_id][join_field]
             target_ids = os_lookup.get(source_value)
             for target_id in target_ids:
-                if to_label in self.nodes[target_id].get('labels',[]):
+                if to_label in self.nodes[target_id].get("labels", []):
                     self.add_labeled_edge(source_id, target_id, edge_label)
-
 
     def draw(self, outputfile, title: str = "MogwaiGraph", **kwargs):
         """
@@ -415,9 +421,7 @@ class MogwaiGraphDrawer:
         if n[0] in self.v_drawn:
             return None
         id, properties = n
-        head = (
-            f"{id}, {properties.pop('name')}\n{', '.join(properties.pop('labels'))}"
-        )
+        head = f"{id}, {properties.pop('name')}\n{', '.join(properties.pop('labels'))}"
         if self.vertex_keys:
             properties = {k: v for k, v in properties.items() if k in self.vertex_keys}
         body = "\n".join([f"{k}: {v}" for k, v in properties.items()])

@@ -717,7 +717,7 @@ class Traversal:
         return node
 
     def print_query(self) -> str:
-        text= " -> ".join([x.print_query() for x in self.query_steps])
+        text = " -> ".join([x.print_query() for x in self.query_steps])
         return text
 
     def __str__(self) -> str:

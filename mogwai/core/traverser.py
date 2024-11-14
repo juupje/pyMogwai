@@ -24,9 +24,7 @@ class Traverser:
     """
 
     def __init__(
-        self, node_id: str,
-        other_node_id: str = None,
-        track_path: bool = True
+        self, node_id: str, other_node_id: str = None, track_path: bool = True
     ):  # TODO set `track_path` default to False
         self.node_id = node_id
         self.track_path = track_path

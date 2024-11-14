@@ -1,7 +1,6 @@
 import mogwai.core.traversal as Trav
 from mogwai.core import MogwaiGraph, Traverser
 from mogwai.parser.filesystem import FileSystemGraph as FSG
-
 from tests.basetest import BaseTest
 
 

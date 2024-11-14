@@ -125,7 +125,7 @@ class TestMogwaiGraph(BaseTest):
         self.assertIsNotNone(ps_lookup)
 
         debug = self.debug
-        #debug = True
+        # debug = True
         if debug:
             for index_name in g.spog_index.config.active_indices:
                 index = g.spog_index.indices.get(index_name)
@@ -156,7 +156,7 @@ class TestMogwaiGraph(BaseTest):
         so_lookup = g.spog_index.get_lookup("S", "O")
         self.assertEqual(
             so_lookup.get("0"),
-            {0.5, 1.0, "1","2", "3", 0.4, "marko", "knows", "Person", "created", 29},
+            {0.5, 1.0, "1", "2", "3", 0.4, "marko", "knows", "Person", "created", 29},
         )
         self.assertEqual(so_lookup.get("2"), {"lop", "java", "Software"})
 

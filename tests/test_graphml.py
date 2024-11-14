@@ -1,11 +1,13 @@
 import os
 import time
-
-from mogwai.parser.graphml_converter import graphml_to_mogwaigraph
-from mogwai.core.mogwaigraph import MogwaiGraph
-from tests.basetest import BaseTest
-import networkx as nx
 import uuid
+
+import networkx as nx
+
+from mogwai.core.mogwaigraph import MogwaiGraph
+from mogwai.parser.graphml_converter import graphml_to_mogwaigraph
+from tests.basetest import BaseTest
+
 
 class TestGraphml(BaseTest):
     """
@@ -57,25 +59,32 @@ class TestGraphml(BaseTest):
         graph = MogwaiGraph.modern()
         output_path = os.path.join("/tmp", f"modern_mogwai_{uuid.uuid4().hex}.graphml")
 
-
         # Write the graph to GraphML format
-        nx.write_graphml(graph, output_path,
-                         encoding='utf-8',
-                         prettyprint=True,
-                         infer_numeric_types=True)
+        nx.write_graphml(
+            graph,
+            output_path,
+            encoding="utf-8",
+            prettyprint=True,
+            infer_numeric_types=True,
+        )
 
         # Assert that the file was created
         self.assertTrue(os.path.exists(output_path), "GraphML file was not created.")
 
         # Assert that the file size is greater than zero
         file_size = os.path.getsize(output_path)
-        self.assertGreater(file_size, 1900, "GraphML file size is zero, indicating an empty file.")
+        self.assertGreater(
+            file_size, 1900, "GraphML file size is zero, indicating an empty file."
+        )
 
         # Verify the file's creation timestamp is after the recorded time
         creation_time = os.path.getmtime(output_path)
         current_time = time.time()
-        self.assertLessEqual(current_time - creation_time, 1, "GraphML file timestamp for {output_path} is incorrect, indicating it wasn't created during the test.")
-
+        self.assertLessEqual(
+            current_time - creation_time,
+            1,
+            "GraphML file timestamp for {output_path} is incorrect, indicating it wasn't created during the test.",
+        )
 
         # Read the graph back from the file
         loaded_graph = nx.read_graphml(output_path)
@@ -86,5 +95,8 @@ class TestGraphml(BaseTest):
                 original_value = graph.nodes[node][key]
                 loaded_value = loaded_graph.nodes[node][key]
 
-                self.assertEqual(original_value, loaded_value,
-                                 f"Mismatch in node property '{key}' for node '{node}'")
+                self.assertEqual(
+                    original_value,
+                    loaded_value,
+                    f"Mismatch in node property '{key}' for node '{node}'",
+                )

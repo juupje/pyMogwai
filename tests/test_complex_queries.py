@@ -1,7 +1,6 @@
 from mogwai.core import MogwaiGraph
 from mogwai.core.steps.statics import *
 from mogwai.core.traversal import MogwaiGraphTraversalSource
-
 from tests.basetest import BaseTest
 
 

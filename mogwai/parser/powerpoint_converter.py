@@ -32,10 +32,10 @@ class PPGraph(MogwaiGraph):
         dic = ppt_to_dic(self.file)
         meta_dict = {"titel": dic["title"],
                      "author": dic["author"],
-                     "created": dic["created"]}     
+                     "created": dic["created"]}
         self.nodes[self.root].update({"metadata": meta_dict,
                                 "number_of_slides": len(dic["slides"])})
-        
+
         for slide in dic["slides"]:
             if 'name' in slide:
                 name = slide['name']
@@ -46,10 +46,3 @@ class PPGraph(MogwaiGraph):
                 name = "page" + str(slide["page"])
             node = self.add_labeled_node(label="PPPage", name=name, **slide)
             self.add_labeled_edge(self.root, node, "HAS_PAGE")
-
-    
-        
-    
-    
-    
-

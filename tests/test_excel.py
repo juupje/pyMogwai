@@ -1,8 +1,7 @@
 import os
 
 from mogwai.parser.excel_converter import EXCELGraph
-
-from .basetest import BaseTest
+from tests.basetest import BaseTest
 
 
 class TestExcel(BaseTest):
@@ -21,9 +20,3 @@ class TestExcel(BaseTest):
             "Wrong column element",
         )
         graph.draw(os.path.join(self.root_path, "tests", "excel_test.svg"), prog="dot")
-
-
-if __name__ == "__main__":
-    import unittest
-
-    unittest.main()

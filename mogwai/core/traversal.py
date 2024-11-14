@@ -18,6 +18,7 @@ logger = logging.getLogger("Mogwai")
 class Traversal:
     """
     see https://tinkerpop.apache.org/javadocs/3.7.3/core/org/apache/tinkerpop/gremlin/process/traversal/Traversal.html
+
     A Traversal represents a directed walk over a Graph.
     This is the base sterface for all traversal's,
     where each extending sterface is seen as a domain
@@ -788,6 +789,17 @@ class AnonymousTraversal(Traversal):
 
 
 class MogwaiGraphTraversalSource:
+    """
+    see https://tinkerpop.apache.org/javadocs/current/full/org/apache/tinkerpop/gremlin/process/traversal/dsl/graph/GraphTraversalSource.html
+
+    A GraphTraversalSource is the primary DSL of the Gremlin traversal machine.
+    It provides access to all the configurations and steps
+    for Turing complete graph computing.
+    Any DSL can be constructed based on the methods of both GraphTraversalSource
+    and GraphTraversal.
+
+    """
+
     def __init__(
         self,
         connector: MogwaiGraph,

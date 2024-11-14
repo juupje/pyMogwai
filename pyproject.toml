@@ -20,7 +20,9 @@ dependencies = [
   # https://networkx.org/
   'networkx==3.3',
   # https://pypi.org/project/dacite/
-  "dacite>=1.8.1"
+  "dacite>=1.8.1",
+  # https://pypi.org/project/dataclasses-json/
+  "dataclasses-json>=0.6.7"
 ]
 requires-python = ">=3.10"
 classifiers=[

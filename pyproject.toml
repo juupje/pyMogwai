@@ -17,16 +17,8 @@ maintainers = [
 readme = "README.md"
 license= "Apache-2.0"
 dependencies = [
-  # https://github.com/py-pdf/pypdf
-  'pypdf>=4.2.0',
-  # https://github.com/WolfgangFahl/pySemanticSlides
-  'pysemanticslides==0.0.10',
   # https://networkx.org/
   'networkx==3.3',
-  # https://github.com/pydot/pydot
-  'pydot>=2.0.0',
-  # https://graphviz.org/
-  'pygraphviz>=0.20.3',
 ]
 requires-python = ">=3.10"
 classifiers=[
@@ -56,15 +48,29 @@ Source = "https://github.com/juupje/pyMogwai"
 test = [
   "green",
 ]
+converters = [
+  # https://github.com/py-pdf/pypdf
+  'pypdf>=4.2.0',
+  # https://github.com/WolfgangFahl/pySemanticSlides
+  'pysemanticslides==0.0.10',
+]
+draw = [
+  # https://github.com/pydot/pydot
+  'pydot>=2.0.0',
+]
+graphviz = [
+  # https://graphviz.org/
+  'pygraphviz>=0.20.3',
+]
 gui = [
-    # nicegui
-    "nicegui>=2.5.0",
-    "ngwidgets>=0.19.2"
+  # nicegui
+  "nicegui>=2.5.0",
+  "ngwidgets>=0.19.2"
 ]
 lod = [
-	# lodstorage
-	# https://pypi.org/project/pyLodStorage/
-	"pyLodStorage>=0.13.3"
+  # lodstorage
+  # https://pypi.org/project/pyLodStorage/
+  "pyLodStorage>=0.13.3"
 ]
 [tool.hatch.build.targets.wheel]
 only-include = ["mogwai", "mogwai_examples"]

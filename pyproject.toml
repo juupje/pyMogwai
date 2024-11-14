@@ -19,6 +19,8 @@ license= "Apache-2.0"
 dependencies = [
   # https://networkx.org/
   'networkx==3.3',
+  # https://pypi.org/project/dacite/
+  "dacite>=1,8,1"
 ]
 requires-python = ">=3.10"
 classifiers=[

@@ -249,6 +249,11 @@ class TestGraphSchema(BaseTest):
         converter.convert_graph(graph)
         rdf_turtle = converter.serialize()
 
+        # Save RDF to a temporary file
+        rdf_path = "/tmp/royal_family.ttl"
+        with open(rdf_path, "w") as f:
+            f.write(rdf_turtle)
+
         # Debug output if needed
         if self.debug:
             print(f"RDF Output:\n{rdf_turtle}")
@@ -258,3 +263,12 @@ class TestGraphSchema(BaseTest):
         self.assertIn("Elizabeth Alexandra Mary Windsor", rdf_turtle)
         self.assertIn("succeeds", rdf_turtle)
         self.assertIn("wikidata_id", rdf_turtle)
+
+        # Verify RDF readability with rdflib
+        rdf_graph = Graph()
+        try:
+            rdf_graph.parse(data=rdf_turtle, format="turtle")
+            # Check if parsing was successful
+            self.assertGreater(len(rdf_graph), 0, "Parsed RDF graph should contain triples.")
+        except Exception as e:
+            self.fail(f"RDF parsing failed: {e}")

@@ -2,7 +2,7 @@ from .base_steps import Step
 from mogwai.core.traversal import Traversal
 from mogwai.core.traverser import Traverser, Value, Property
 from typing import Set, List, Iterable, Generator, Any
-from mogwai.utils import get_dict_indexer, ensure_is_list
+from mogwai.utils.type_utils import TypeUtils as tu
 import logging
 logger = logging.getLogger("Mogwai")
 
@@ -14,7 +14,7 @@ class ToList(Step):
 
     def __call__(self, traversers:Iterable[Traverser]|Iterable[Value]|Iterable[Property]) -> List[Any]:
         if self.by:
-            get_property = get_dict_indexer(self.by)
+            get_property = tu.get_dict_indexer(self.by)
         '''def convert_func(trav):
             if isinstance(trav, Iterable):
                 #we've got nested data...
@@ -58,7 +58,7 @@ class AsGenerator(Step):
 
     def __call__(self, traversers:Iterable[Traverser]|Iterable[Value]|Iterable[Property]) -> Generator:
         if self.by:
-            get_property = get_dict_indexer(self.by)
+            get_property = tu.get_dict_indexer(self.by)
         def convert_func(trav):
             if isinstance(trav, (list, tuple, set)):
                 #we've got nested data...
@@ -98,17 +98,17 @@ class AsPath(Step):
 
     def __call__(self, traversers:Iterable[Traverser]) -> List[List[int]]:
         if(self.by):
-            get_prop = get_dict_indexer(self.by, None)
+            get_prop = tu.get_dict_indexer(self.by, None)
             paths = [[get_prop(self.traversal._get_element_from_id(item)) for item in t.path]
                      for t in traversers]
         else:
             paths = [t.path for t in traversers]
         return paths
-    
+
 class Iterate(AsGenerator):
     def __init__(self, traversal:Iterable):
         super().__init__(traversal)
         self.flags = Step.ISTERMINAL
-    
+
     def __call__(self, traversers:Iterable[Traverser]|Iterable[Value]|Iterable[Property]) -> None:
         for _ in traversers: pass #TODO: optimize this: we needn't execute this if there are no side effects!

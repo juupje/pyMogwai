@@ -6,6 +6,7 @@ from mogwai.core.exceptions import GraphTraversalError
 from mogwai.core.steps.scope import Scope
 from mogwai.core.traverser import Traverser
 from mogwai.decorators import add_camel_case_methods, with_call_order
+from mogwai.utils.type_utils import TypeUtils as tu
 
 from .exceptions import QueryError
 from .mogwaigraph import MogwaiGraph
@@ -589,13 +590,11 @@ class Traversal:
         return self
 
     def property(self, key: str | List[str], value: Any) -> "Traversal":
-        from mogwai.utils import get_dict_indexer
-
         from .steps.base_steps import SideEffectStep
 
         # keys = ['properties'] + (key if type(key) is list else [key])
         if isinstance(key, (tuple, list)):
-            indexer = get_dict_indexer(key[:-1])
+            indexer = tu.get_dict_indexer(key[:-1])
             key = key[-1]
         else:
             indexer = lambda x: x

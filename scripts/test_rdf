@@ -4,8 +4,9 @@
 
 PORT=9999
 CONTAINER_NAME="blazegraph"
-WEB_URL="http://localhost:$PORT/bigdata/"
-ENDPOINT_URL="${WEB_URL}namespace/kb/sparql"
+BASE_URL="http://localhost:$PORT/bigdata"
+WEB_URL="${BASE_URL}/#query"
+ENDPOINT_URL="${BASE_URL}/namespace/kb/sparql"
 
 ENDPOINTS_YAML=/tmp/endpoints-royals.yaml
 QUERIES_YAML=/tmp/royals-queries.yaml
@@ -136,16 +137,21 @@ create_queries_yaml() {
 'RoyalFamily':
   sparql: |
     PREFIX royal: <http://royal.example.org/>
-
-    SELECT ?person ?full_name ?succeeds ?wikidata_id ?born_iso_date ?died_iso_date
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+    SELECT ?id ?name ?succeeds_id ?succeeds_name ?wikidata ?born ?died
     WHERE {
-      ?person royal:full_name ?full_name .
-      OPTIONAL { ?person royal:succeeds ?succeeds }
-      OPTIONAL { ?person royal:wikidata_id ?wikidata_id }
-      OPTIONAL { ?person royal:born_iso_date ?born_iso_date }
-      OPTIONAL { ?person royal:died_iso_date ?died_iso_date }
+      ?person royal:full_name ?name .
+      BIND(REPLACE(str(?person), "http://royal.example.org/", "") as ?id)
+      OPTIONAL {
+        ?person royal:succeeds ?succeeds .
+        BIND(REPLACE(str(?succeeds), "http://royal.example.org/", "") as ?succeeds_id)
+        ?succeeds royal:full_name ?succeeds_name
+      }
+      OPTIONAL { ?person royal:wikidata_id ?wikidata }
+      OPTIONAL { ?person royal:born_iso_date ?born }
+      OPTIONAL { ?person royal:died_iso_date ?died }
     }
-    ORDER BY ?full_name
+    ORDER BY ?id
 EOF
     echo "Created $QUERIES_YAML"
 }
@@ -230,5 +236,8 @@ import_rdf
 run_sparql_query
 create_endpoints_yaml
 create_queries_yaml
-run_named_query github
+for format in github json
+do
+  run_named_query $format
+done
 #stop_blazegraph

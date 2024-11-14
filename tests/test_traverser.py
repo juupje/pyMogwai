@@ -5,6 +5,9 @@ from tests.basetest import BaseTest
 
 
 class TestTraverser(BaseTest):
+    """
+    test for Traverser
+    """
     def setUp(self):
         super().setUp()
         self.file_system = FSG(self.root_path)

@@ -2,7 +2,7 @@ import os
 
 from mogwai.parser.powerpoint_converter import PPGraph
 
-from .basetest import BaseTest
+from tests.basetest import BaseTest
 
 
 class TestPowerPoint(BaseTest):
@@ -27,9 +27,3 @@ class TestPowerPoint(BaseTest):
         graph.draw(os.path.join(self.root_path, "tests", "pp_test.svg"), "dot")
         g = PPGraph(self.midterm)
         g.draw(os.path.join(self.root_path, "tests", "midterm.svg"), "dot")
-
-
-if __name__ == "__main__":
-    import unittest
-
-    unittest.main()

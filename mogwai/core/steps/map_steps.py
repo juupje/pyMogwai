@@ -5,7 +5,7 @@ from mogwai.core.traverser import Traverser, Value as TravValue, Property
 from mogwai.core.steps.scope import Scope
 from mogwai.core.exceptions import QueryError, GraphTraversalError
 from mogwai.decorators import as_traversal_function
-from mogwai.utils import ensure_is_list, get_dict_indexer
+from mogwai.utils.type_utils import TypeUtils as tu
 import logging
 logger = logging.getLogger("Mogwai")
 
@@ -18,7 +18,7 @@ class Value(MapStep):
             if isinstance(t, Property): return t.to_value()
             else: raise GraphTraversalError("Cannot extract value from non-Property object.")
         self._map = _map
-    
+
 class Key(MapStep):
     def __init__(self, traversal:Traversal):
         super().__init__(traversal)
@@ -26,11 +26,11 @@ class Key(MapStep):
             if isinstance(t, Property): return t.to_key()
             else: raise GraphTraversalError("Cannot extract keys from non-Property object.")
         self._map = _map
-        
+
 class Values(MapStep):
     def __init__(self, traversal:Traversal, *keys:str|List[str]):
         super().__init__(traversal=traversal)
-        self.indexers = [get_dict_indexer(key, _NA) for key in keys]
+        self.indexers = [tu.get_dict_indexer(key, _NA) for key in keys]
         self.keys = [(tuple(key) if type(key) is list else key) for key in keys]
         if len(keys)==0:
             def _map(t:Traverser|Property) -> Generator[TravValue,None,None]:
@@ -46,7 +46,7 @@ class Values(MapStep):
                         keys = obj.keys()
                     else:
                         return
-                indexers = [get_dict_indexer(key, _NA) for key in keys]
+                indexers = [tu.get_dict_indexer(key, _NA) for key in keys]
                 for i in range(len(keys)):
                     x = indexers[i](obj)
                     if x==_NA: continue
@@ -85,7 +85,7 @@ class Values(MapStep):
 class Properties(MapStep):
     def __init__(self, traversal:Traversal, *keys:str|List[str]):
         super().__init__(traversal=traversal)
-        self.indexers = [get_dict_indexer(key, _NA) for key in keys]
+        self.indexers = [tu.get_dict_indexer(key, _NA) for key in keys]
         self.keys = [(tuple(key) if type(key) is list else key) for key in keys]
         if len(keys)==0:
             def _map(t:Traverser|Property) -> Generator[Property,None,None]:
@@ -101,7 +101,7 @@ class Properties(MapStep):
                         keys = obj.keys()
                     else:
                         return None
-                indexers = [get_dict_indexer(key, _NA) for key in keys]
+                indexers = [tu.get_dict_indexer(key, _NA) for key in keys]
                 keys = [(tuple(key) if type(key) is list else key) for key in keys]
                 for i in range(len(keys)):
                     x = indexers[i](obj)
@@ -146,14 +146,14 @@ class Properties(MapStep):
 
     def __call__(self, traversers: Iterable[Traverser] | Iterable[Property]) -> Iterable[Property]:
         return (x for t in traversers for x in self._map(t))
-    
+
 class ElementMap(MapStep):
     def __init__(self, traversal:Traversal, keys:str|List[str]|None=None):
         super().__init__(traversal=traversal)
         if keys is not None:
             if len(keys)==1: keys = keys[0]
             if type(keys) is list:
-                indexers = [get_dict_indexer(key, _NA) for key in keys]
+                indexers = [tu.get_dict_indexer(key, _NA) for key in keys]
                 def _map(t:Traverser|Any) -> dict:
                     if type(t)==Traverser:
                         obj = self.traversal._get_element(t)
@@ -162,7 +162,7 @@ class ElementMap(MapStep):
                     else:
                         raise GraphTraversalError("Cannot map non-traverser objects to elements.")
             else:
-                indexer = get_dict_indexer(keys, _NA)
+                indexer = tu.get_dict_indexer(keys, _NA)
                 def _map(t:Traverser|Any) -> dict:
                     if type(t)==Traverser:
                         obj = self.traversal._get_element(t)
@@ -177,8 +177,8 @@ class ElementMap(MapStep):
                     return {"key": t.key, "value": t.value}
                 else:
                     raise GraphTraversalError("Cannot map non-traverser objects to elements.")
-        self._map = _map    
-            
+        self._map = _map
+
 class Select(MapStep):
     def __init__(self, traversal:Traversal, keys:str|List[str], by:List[str]|None=None, **kwargs):
         flags = kwargs.pop('flags', 0)
@@ -191,17 +191,17 @@ class Select(MapStep):
             #First construct the 'by' indexers
             if type(self.keys) is list:
                 if len(self.by)==1:
-                    self.indexers = [get_dict_indexer(self.by[0])]*len(self.keys)
+                    self.indexers = [tu.get_dict_indexer(self.by[0])]*len(self.keys)
                 elif len(self.by)==len(self.keys):
-                    self.indexers = [get_dict_indexer(by) for by in self.by]
+                    self.indexers = [tu.get_dict_indexer(by) for by in self.by]
                 else:
                     raise QueryError("The number of `by`-modulators to `select` should be 1 or equal to the number of keys.")
             else:
                 if len(self.by)==1:
-                    self.indexers = [get_dict_indexer(self.by[0])]
+                    self.indexers = [tu.get_dict_indexer(self.by[0])]
                 else:
                     raise QueryError("The number of `by`-modulators to `select` should be 1 or equal to the number of keys.")
-    
+
             #We don't want any control-flow (if's) inside the _map function if possible.
             # So we put all if's that only depend on the step's parameters outside the _map function.
             def apply_by_indexer(t:Traverser|TravValue|Property, idx:int):
@@ -270,7 +270,7 @@ class Order(MapStep):
             travs, keys = [], []
             if self.by:
                 if isinstance(self.by, (str,list)):
-                    indexer = get_dict_indexer(self.by,None)
+                    indexer = tu.get_dict_indexer(self.by,None)
                     for t in traversers:
                         if (x:=indexer(self.traversal._get_element(t))) is not None:
                             travs.append(t)
@@ -278,9 +278,9 @@ class Order(MapStep):
                 elif isinstance(self.by, AnonymousTraversal):
                     for t in traversers:
                         travs.append(t)
-                        keys.append(extract_first_item(ensure_is_list(self.by([t.copy()]))))
+                        keys.append(extract_first_item(tu.ensure_is_list(self.by([t.copy()]))))
             else:
-                traversers = ensure_is_list(traversers)
+                traversers = tu.ensure_is_list(traversers)
                 if(len(traversers)==0): return traversers
                 if isinstance(traversers[0], TravValue):
                     travs = traversers
@@ -296,19 +296,19 @@ class Order(MapStep):
             logger.debug("Failed to use numpy, falling back to python built-ins")
             if self.by:
                 if isinstance(self.by, (str,list)):
-                    indexer = get_dict_indexer(self.by,None)
+                    indexer = tu.get_dict_indexer(self.by,None)
                     sortmap = {t:x for t in traversers if (x:=indexer(self.traversal._get_element(t))) is not None}
                 elif isinstance(self.by, AnonymousTraversal):
-                    sortmap = {t:extract_first_item(ensure_is_list(self.by([t.copy()]))) for t in traversers}
+                    sortmap = {t:extract_first_item(tu.ensure_is_list(self.by([t.copy()]))) for t in traversers}
             else:
-                traversers = ensure_is_list(traversers)
+                traversers = tu.ensure_is_list(traversers)
                 if(len(traversers)==0): return traversers
                 if isinstance(traversers[0], TravValue):
                     sortmap = {t:t.value for t in traversers}
                 else:
                     raise GraphTraversalError("Cannot order traversers without `by` key")
             return (k for k, _ in sorted(sortmap.items(), key=lambda item: item[1], reverse=not(self.asc)))
-    
+
     def print_query(self) -> str:
         if isinstance(self.by, AnonymousTraversal):
             return f"{self.__class__.__name__}(by {self.by.print_query()})"
@@ -319,11 +319,11 @@ class Path(MapStep):
     def __init__(self, traversal:Traversal, by:str|List[str]=None):
         super().__init__(traversal, flags=Path.SUPPORTS_BY|Path.NEEDS_PATH)
         self.by = by
-    
+
     def build(self):
         if(self.by):
-             self.indexer = get_dict_indexer(self.by, None)
-             self._map = lambda t: t.to_value([self.indexer(self.traversal._get_element_from_id(x)) for x in t.path])
+            self.indexer = tu.get_dict_indexer(self.by, None)
+            self._map = lambda t: t.to_value([self.indexer(self.traversal._get_element_from_id(x)) for x in t.path])
         else:
             self._map = lambda t: t.to_value(t.path)
 
@@ -331,7 +331,7 @@ class Count(MapStep):
     def __init__(self, traversal:Traversal, scope:Scope=Scope.global_):
         super().__init__(traversal)
         self.scope = scope
-    
+
     def __call__(self, traversers:Iterable[Traverser]) -> List[TravValue]:
         if self.scope==Scope.local:
             def gen():
@@ -343,7 +343,7 @@ class Count(MapStep):
                     else:
                         yield t.to_value(1)
             return gen()
-        return [TravValue(len(ensure_is_list(traversers)))]
+        return [TravValue(len(tu.ensure_is_list(traversers)))]
 
 class Max(MapStep):
     def __init__(self, traversal: Traversal, scope:Scope=Scope.global_):
@@ -444,7 +444,7 @@ class Aggregate(MapStep):
             elif(self.aggfunc == 'mean'):
                 def _map(t:Traverser|TravValue):
                     if isinstance(t, TravValue) and isinstance(t.val, Iterable):
-                        val = ensure_is_list(t.val)
+                        val = tu.ensure_is_list(t.val)
                         return t.set_value(sum(t.val)/len(t.val))
             self._map = _map
             return super().__call__(traversers)

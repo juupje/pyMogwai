@@ -5,6 +5,7 @@ from ..exceptions import GraphTraversalError
 import typing
 if typing.TYPE_CHECKING:
     from mogwai.core.traversal import Traversal, AnonymousTraversal
+from mogwai.utils.type_utils import TypeUtils as tu
 
 class Step:
     ISTERMINAL  = 1<<0
@@ -43,7 +44,7 @@ class Step:
 
     @abstractmethod
     def __call__(self, traversers: Iterable['Traverser']) -> Iterable['Traverser']:
-       pass
+        pass
 
     @abstractmethod
     def build(self):
@@ -53,7 +54,7 @@ class Step:
 
     def __str__(self) -> str:
         return f"<{self.__class__.__name__}[isstart={self.isstart}, isterminal={self.isterminal}]>"
-    
+
 class MapStep(Step):
     def __init__(self, traversal:'Traversal', **kwargs):
         super().__init__(traversal, **kwargs)
@@ -79,8 +80,7 @@ class SideEffectStep(Step):
 
     def __call__(self, traversers: Iterable['Traverser']) -> Iterable['Traverser']:
         from mogwai.core import AnonymousTraversal
-        from mogwai.utils import ensure_is_list
-        traversers = ensure_is_list(traversers)
+        traversers = tu.ensure_is_list(traversers)
         if isinstance(self.side_effect, AnonymousTraversal):
             for traverser in traversers:
                 self.side_effect(self.traversal, [traverser.copy()])
@@ -88,7 +88,7 @@ class SideEffectStep(Step):
             for traverser in traversers:
                 self.side_effect(traverser)
         return traversers
-    
+
 class FilterStep(Step):
     def __init__(self, traversal:'Traversal', **kwargs):
         super().__init__(traversal, **kwargs)

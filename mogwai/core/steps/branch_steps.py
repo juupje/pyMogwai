@@ -5,7 +5,7 @@ from mogwai.core.traverser import Traverser, Value
 from uuid import uuid4
 from ..exceptions import GraphTraversalError, QueryError
 from mogwai.decorators import as_traversal_function, with_call_order
-from mogwai.utils import ensure_is_list, ensure_is_set
+from mogwai.utils.type_utils import TypeUtils as tu
 from typing import Tuple, Set
 import logging
 logger = logging.getLogger("Mogwai")
@@ -22,7 +22,7 @@ class Repeat(BranchStep):
         self.emit_before = False
         self.until = until
         self.uuid = uuid4().time_mid
-    
+
     def build(self):
         self.do._build(self.traversal)
         if self.until:
@@ -43,7 +43,7 @@ class Repeat(BranchStep):
             for _ in range(self.times):
                 traversers = self.do(traversers)
                 if(self.emit):
-                    traversers = ensure_is_list(traversers)
+                    traversers = tu.ensure_is_list(traversers)
                     result.extend(emit_filter(traversers))
             return result or traversers
         else:
@@ -56,16 +56,16 @@ class Repeat(BranchStep):
                     raise GraphTraversalError("Max iteration depth reached in Repeat step")
                 return travs
             def until_step(travs:Iterable[Traverser]) -> Tuple[Set[Traverser], Set[Traverser]]:
-                travs = ensure_is_set(travs)
+                travs = tu.ensure_is_set(travs)
                 #we can't use generators here
                 condition_fulfilled = {t for t in travs if next(iter(self.until([t.copy()])), _NA)!=_NA}
                 #for remaining_travs the condition is fullfilled
                 return condition_fulfilled, travs-condition_fulfilled
-            
+
             #initialize the result
             result = set()
             emitted = set()
-            traversers = ensure_is_list(traversers)
+            traversers = tu.ensure_is_list(traversers)
             if self.emit_before:
                 emitted = set(emit_filter(traversers))
             #set all traversers to be active
@@ -94,7 +94,7 @@ class Repeat(BranchStep):
     def print_query(self) -> str:
         if self.times:
             return f"{self.__class__.__name__}({self.do.print_query()}, x{self.times})"
-        
+
         if self.until_do:
             s = f"until {self.until.print_query()}, do {self.do.print_query()}"
         else:
@@ -107,7 +107,7 @@ class Repeat(BranchStep):
             else:
                 s = f"{s}, {emitstr}"
         return f"{self.__class__.__name__}({s})"
-        
+
 
 
 class Branch(BranchStep):
@@ -116,7 +116,7 @@ class Branch(BranchStep):
         self.branchFunc = branchFunc
         self.options = {}
         self.defaultStep=None
-    
+
     #TODO update flags when options are added
 
     def build(self):
@@ -167,7 +167,7 @@ class Union(BranchStep):
     def build(self):
         for t in self.traversals:
             t._build(self.traversal)
-    
+
     def __call__(self, traversers:Iterable[Traverser]) -> Iterable[Traverser]:
         #Isn't generator comprehension beautiful?
         return (t for trav in traversers for traversal in self.traversals for t in traversal([trav]))
@@ -179,13 +179,13 @@ class Local(BranchStep):
     def __init__(self, traversal:Traversal, localTrav:AnonymousTraversal):
         super().__init__(traversal=traversal, flags=Local.NEEDS_PATH if localTrav.needs_path else 0)
         self.localTrav = localTrav
-    
+
     def build(self):
         return self.localTrav._build(self.traversal)
 
     def __call__(self, traversers: Iterable[Traverser]) -> Iterable[Traverser]:
         return (t1 for t in traversers for t1 in self.localTrav([t]))
-    
+
     def print_query(self) -> str:
         return f"{self.__class__.__name__}({self.localTrav.print_query()})"
 

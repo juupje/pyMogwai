@@ -2,7 +2,7 @@ import os
 
 from mogwai.parser import PDFGraph
 
-from .basetest import BaseTest
+from tests.basetest import BaseTest
 
 
 class TestPDF(BaseTest):
@@ -25,8 +25,3 @@ class TestPDF(BaseTest):
         )
         graph.draw(os.path.join(self.root_path, "tests", "pdf_test.svg"), prog="dot")
 
-
-if __name__ == "__main__":
-    import unittest
-
-    unittest.main()

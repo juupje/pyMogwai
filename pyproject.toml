@@ -61,6 +61,11 @@ gui = [
     "nicegui>=2.5.0",
     "ngwidgets>=0.19.2"
 ]
+lod = [
+	# lodstorage
+	# https://pypi.org/project/pyLodStorage/
+	"pyLodStorage>=0.13.3"
+]
 [tool.hatch.build.targets.wheel]
 only-include = ["mogwai", "mogwai_examples"]
 

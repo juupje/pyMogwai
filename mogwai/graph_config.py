@@ -7,7 +7,7 @@ Created on 2024-08-17
 from dataclasses import field
 from typing import Any, Callable, Dict, Optional
 
-from ngwidgets.yamlable import lod_storable
+from mogwai.lod.yamlable import lod_storable
 
 
 @lod_storable

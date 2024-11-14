@@ -1,0 +1,55 @@
+[
+  {
+    "born": "1926-04-21",
+    "died": "2022-09-08",
+    "id": "0",
+    "name": "Elizabeth Alexandra Mary Windsor",
+    "wikidata": "Q9682"
+  },
+  {
+    "born": "1948-11-14",
+    "id": "1",
+    "name": "Charles III of the United Kingdom",
+    "succeeds_id": "2",
+    "succeeds_name": "William, Duke of Cambridge",
+    "wikidata": "Q43274"
+  },
+  {
+    "born": "1982-06-21",
+    "id": "2",
+    "name": "William, Duke of Cambridge",
+    "succeeds_id": "3",
+    "succeeds_name": "Prince George of Wales",
+    "wikidata": "Q36812"
+  },
+  {
+    "born": "2013-07-22",
+    "id": "3",
+    "name": "Prince George of Wales",
+    "succeeds_id": "4",
+    "succeeds_name": "Princess Charlotte of Wales",
+    "wikidata": "Q13590412"
+  },
+  {
+    "born": "2015-05-02",
+    "id": "4",
+    "name": "Princess Charlotte of Wales",
+    "succeeds_id": "5",
+    "succeeds_name": "Prince Louis of Wales",
+    "wikidata": "Q18002970"
+  },
+  {
+    "born": "2018-04-23",
+    "id": "5",
+    "name": "Prince Louis of Wales",
+    "succeeds_id": "6",
+    "succeeds_name": "Harry Duke of Sussex",
+    "wikidata": "Q38668629"
+  },
+  {
+    "born": "1984-09-15",
+    "id": "6",
+    "name": "Harry Duke of Sussex",
+    "wikidata": "Q152316"
+  }
+]

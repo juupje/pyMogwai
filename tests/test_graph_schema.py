@@ -8,12 +8,13 @@ import os
 import platform
 
 import lodstorage.sample2
+from rdflib import Graph
+
 from mogwai.core import MogwaiGraph
 from mogwai.core.traversal import MogwaiGraphTraversalSource
-from tests.basetest import BaseTest
-
 from mogwai.schema.graph_schema import GraphSchema, NodeTypeConfig
 from mogwai.schema.nx_to_rdf import NetworkXToRDFConverter
+from tests.basetest import BaseTest
 
 
 class Royals(lodstorage.sample2.Royals):
@@ -123,7 +124,9 @@ class TestGraphSchema(BaseTest):
         script_dir = os.path.dirname(os.path.abspath(__file__))
 
         # Set yaml_path to the "mogwai_examples" directory located in the parent directory of the script's location
-        yaml_path = os.path.join(script_dir, '..', 'mogwai_examples', 'modern-schema.yaml')
+        yaml_path = os.path.join(
+            script_dir, "..", "mogwai_examples", "modern-schema.yaml"
+        )
 
         # Normalize the path to remove any redundant components
         yaml_path = os.path.normpath(yaml_path)
@@ -242,7 +245,7 @@ class TestGraphSchema(BaseTest):
         # Create schema for conversion
         schema = self.get_schema()
         # Convert to RDF
-        converter = NetworkXToRDFConverter(schema,namespaces=["royal"])
+        converter = NetworkXToRDFConverter(schema, namespaces=["royal"])
         converter.convert_graph(graph)
         rdf_turtle = converter.serialize()
 

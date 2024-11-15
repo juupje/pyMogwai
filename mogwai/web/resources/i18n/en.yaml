@@ -2,7 +2,7 @@
 # Internationalization of pymogwai
 # WF 2014-11-15
 #
-de:
+en:
   invalid_node_type: "Unknown node type"
   person_list: "Person-List"
   software_list: "Software-List"

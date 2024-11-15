@@ -5,12 +5,13 @@ Created on 2024-10-22
 """
 
 from datetime import datetime
+from typing import List
 
 import networkx as nx
 from rdflib import XSD
 from rdflib import Graph as RDFGraph
 from rdflib import Literal, Namespace, URIRef
-from typing import List
+
 from mogwai.schema.graph_schema import GraphSchema
 
 
@@ -19,7 +20,7 @@ class NetworkXToRDFConverter:
     A converter for converting a NetworkX graph to RDF based on the given GraphSchema.
     """
 
-    def __init__(self, schema: GraphSchema,namespaces:List[str]):
+    def __init__(self, schema: GraphSchema, namespaces: List[str]):
         """
         Initialize the converter with the given schema.
 

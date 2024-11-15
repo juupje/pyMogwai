@@ -63,8 +63,8 @@ class NodeTypeConfig:
             ("viewclass_name", "_viewclass"),
         ]
         for class_name_attr, target_attr in class_configs:
-            clazz=self.get_class(class_name_attr)
-            setattr(self, target_attr,clazz)
+            clazz = self.get_class(class_name_attr)
+            setattr(self, target_attr, clazz)
 
     def as_view_dict(self) -> Dict:
         view_dict = {"description": self.description, "icon": self.icon}

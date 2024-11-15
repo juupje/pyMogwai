@@ -69,7 +69,11 @@ graphviz = [
 gui = [
   # nicegui
   "nicegui>=2.5.0",
-  "ngwidgets>=0.19.2"
+  # nicegui widgets e.g. menu solution/webserver separation
+  "ngwidgets>=0.19.2",
+  # internationalization
+  # https://github.com/danhper/python-i18n
+  "python-i18n>=0.3.9",
 ]
 lod = [
   # lodstorage

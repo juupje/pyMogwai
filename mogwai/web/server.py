@@ -3,13 +3,18 @@ Created on 2024-08-15
 
 @author: wf
 """
+import i18n
+from mogwai.web.i18n_config import I18nConfig
 from ngwidgets.login import Login
 from ngwidgets.users import Users
 from ngwidgets.input_webserver import InputWebserver, InputWebSolution
 from ngwidgets.webserver import WebserverConfig
 from mogwai.version import Version
 from nicegui import Client, ui, run
+from mogwai.web.node_view import  NodeTableView, NodeView, NodeViewConfig
 from mogwai.core import MogwaiGraph, Traversal
+from mogwai.examples.schema import MogwaiExampleSchema
+from mogwai.schema.graph_schema import GraphSchema
 from mogwai.graphs import Graphs
 from mogwai.parser import PDFGraph, powerpoint_converter
 from mogwai.parser.graphml_converter import graphml_to_mogwaigraph
@@ -48,6 +53,12 @@ class MogwaiWebServer(InputWebserver):
         self.login = Login(self, users)
         self.examples=Graphs()
 
+        # the graph for displaying nodes
+        self.graph = MogwaiGraph()
+        yaml_path=MogwaiExampleSchema.get_yaml_path()
+        self.schema = GraphSchema.load(yaml_path=yaml_path)
+        self.schema.add_to_graph(self.graph)
+
         @ui.page("/")
         async def home(client: Client):
             return await self.page(client, MogwaiSolution.home)
@@ -66,6 +77,29 @@ class MogwaiWebServer(InputWebserver):
                 await self.login.logout()
             return RedirectResponse("/")
 
+        @ui.page("/nodes/{node_type}")
+        async def show_nodes(client: Client, node_type: str):
+            """
+            show the nodes of the given type
+            """
+            await self.page(client, MogwaiSolution.show_nodes, node_type)
+
+        @ui.page("/node/{node_type}/{node_id}")
+        async def node(client: Client, node_type: str, node_id: str):
+            """
+            show the node with the given node_id
+            """
+            await self.page(client, MogwaiSolution.show_node, node_type, node_id)
+
+
+    def configure_run(self):
+        """
+        configure with args
+        """
+        I18nConfig.config()
+
+        InputWebserver.configure_run(self)
+
 class MogwaiSolution(InputWebSolution):
     """
     the Mogwai solution
@@ -81,7 +115,8 @@ class MogwaiSolution(InputWebSolution):
         """
         super().__init__(webserver, client)
         self.examples=webserver.examples
-        self.graph=None
+        self.graph = webserver.graph
+        self.schema = webserver.schema
         self.graph_label=None
         self.result_html=None
         self.update_graph("modern")
@@ -105,6 +140,18 @@ class MogwaiSolution(InputWebSolution):
                 self.link_button("logout", "/logout", "logout", new_tab=False)
             else:
                 self.link_button("login", "/login", "login", new_tab=False)
+        # Sorting the node types by display_order
+        sorted_node_types = sorted(
+            self.schema.node_type_configs.items(),
+            key=lambda item: item[1].display_order,
+        )
+
+        for node_type_name, node_type in sorted_node_types:  # label e.g. project_list
+            label_i18nkey = f"{node_type.label.lower()}_list"
+            label = i18n.t(label_i18nkey)
+            path = f"/nodes/{node_type_name}"
+            self.link_button(label, path, node_type.icon, new_tab=False)
+
 
     async def login_ui(self):
         """
@@ -115,6 +162,55 @@ class MogwaiSolution(InputWebSolution):
     async def home(self):
         """Provide the main content page"""
         await self.query_graph()
+
+    async def show_nodes(self, node_type: str):
+        """
+        show nodes of the given type
+
+        Args:
+            node_type(str): the type of nodes to show
+        """
+
+        def show():
+            try:
+                config = NodeViewConfig(
+                    solution=self,
+                    graph=self.graph,
+                    schema=self.schema,
+                    node_type=node_type,
+                )
+                if not config.node_type_config:
+                    ui.label(f"{i18n.t('invalid_node_type')}: {node_type}")
+                    return
+                node_table_view = NodeTableView(config=config)
+                node_table_view.setup_ui()
+            except Exception as ex:
+                self.handle_exception(ex)
+
+        await self.setup_content_div(show)
+
+    async def show_node(self, node_type: str, node_id: str):
+        """
+        show the given node
+        """
+
+        def show():
+            config = NodeViewConfig(
+                solution=self, graph=self.graph, schema=self.schema, node_type=node_type
+            )
+            if not config.node_type_config:
+                ui.label(f"{i18n.t('invalid_node_type')}: {node_type}")
+                return
+            # default view is the general NodeView
+            view_class = NodeView
+            # unless there is a specialization configured
+            if config.node_type_config._viewclass:
+                view_class = config.node_type_config._viewclass
+            node_view = view_class(config=config, node_id=node_id)
+            node_view.setup_ui()
+            pass
+
+        await self.setup_content_div(show)
 
     async def on_graph_select(self,vce_args):
         await run.io_bound(self.update_graph,vce_args.value)

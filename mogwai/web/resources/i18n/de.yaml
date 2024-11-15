@@ -1,0 +1,9 @@
+#
+# Internationalization of pymogwai
+# WF 2014-11-15
+#
+de:
+  invalid_node_type: "Unbekannte Knotenart"
+  person_list: "Personen-Liste"
+  software_list: "Software-Liste"
+  nodetypeconfig_list: "Knoten"

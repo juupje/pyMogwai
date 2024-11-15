@@ -9,7 +9,7 @@ import platform
 
 import lodstorage.sample2
 from rdflib import Graph
-
+from mogwai.examples.schema import MogwaiExampleSchema
 from mogwai.core import MogwaiGraph
 from mogwai.core.traversal import MogwaiGraphTraversalSource
 from mogwai.schema.graph_schema import GraphSchema, NodeTypeConfig
@@ -120,16 +120,7 @@ class TestGraphSchema(BaseTest):
         """
         test loading the schema
         """
-        # Get the directory of the current script
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-
-        # Set yaml_path to the "mogwai_examples" directory located in the parent directory of the script's location
-        yaml_path = os.path.join(
-            script_dir, "..", "mogwai_examples", "modern-schema.yaml"
-        )
-
-        # Normalize the path to remove any redundant components
-        yaml_path = os.path.normpath(yaml_path)
+        yaml_path=MogwaiExampleSchema.get_yaml_path()
         schema = GraphSchema.load(yaml_path)
         self.assertIsNotNone(schema)
         self.assertTrue(len(schema.node_type_configs) >= 1)

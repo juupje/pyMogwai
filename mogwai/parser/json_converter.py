@@ -5,6 +5,7 @@ Created on 2024-10-09
 """
 
 import json
+
 from mogwai.core import MogwaiGraph
 
 

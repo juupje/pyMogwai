@@ -70,7 +70,7 @@ gui = [
   # nicegui
   "nicegui>=2.5.0",
   # nicegui widgets e.g. menu solution/webserver separation
-  "ngwidgets>=0.19.2",
+  "ngwidgets>=0.19.4",
   # internationalization
   # https://github.com/danhper/python-i18n
   "python-i18n>=0.3.9",

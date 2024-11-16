@@ -23,6 +23,7 @@ import mogwai.core.traversal as Trav
 import os
 import tempfile
 from starlette.responses import RedirectResponse
+from lodstorage.persistent_log import Log
 
 class QueryResult:
     def __init__(self,traversal,result):
@@ -114,6 +115,7 @@ class MogwaiSolution(InputWebSolution):
             client (Client): The client instance this context is associated with.
         """
         super().__init__(webserver, client)
+        self.log=Log()
         self.examples=webserver.examples
         self.graph = webserver.graph
         self.schema = webserver.schema
@@ -129,12 +131,10 @@ class MogwaiSolution(InputWebSolution):
         """
         return self.webserver.login.authenticated()
 
-    def setup_menu(self, detailed: bool = True):
+    def configure_menu(self):
         """
-        setup the menu
+        configure additional non-standard menu entries
         """
-        super().setup_menu(detailed=detailed)
-        ui.button(icon="menu", on_click=lambda: self.header.toggle())
         with self.header:
             if self.authenticated():
                 self.link_button("logout", "/logout", "logout", new_tab=False)

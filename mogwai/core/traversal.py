@@ -1,7 +1,7 @@
 from typing import Any, List, Set, Tuple, Callable, Iterable, TYPE_CHECKING
 from .mogwaigraph import MogwaiGraph
 from mogwai.core.traverser import Traverser
-from mogwai.core.steps.scope import Scope
+from mogwai.core.steps.enums import Scope, Cardinality, Order
 from mogwai.decorators import with_call_order, add_camel_case_methods
 from .exceptions import QueryError
 from mogwai.config import DEFAULT_ITERATION_DEPTH
@@ -161,6 +161,11 @@ class Traversal:
 
     ## ===== MAP STEPS ======
     def identity(self) -> 'Traversal': #required for math reasons
+        return self
+
+    def id_(self) -> 'Traversal':
+        from .steps.map_steps import Id
+        self._add_step(Id(self))
         return self
 
     # Important: `value` extract values from *Property's*
@@ -398,19 +403,22 @@ class Traversal:
         self._add_step(As(self, name))
         return self
 
-    def by(self, key:str|List[str]|'AnonymousTraversal') -> 'Traversal':
+    def by(self, key:str|List[str]|'AnonymousTraversal', *args) -> 'Traversal':
         prev_step = self.query_steps[-1]
         if prev_step.supports_by:
             if isinstance(key, AnonymousTraversal):
                 if not prev_step.supports_anonymous_by:
                     raise QueryError(f"Step `{prev_step.print_query()}` does not support anonymous traversals as by-modulations.")
             elif type(key) is not str:
-                raise QueryError("Invalid key type for by-modulation")
+                if isinstance(key, Order) and prev_step.__class__.__name__=="Order":
+                    pass
+                else:
+                    raise QueryError("Invalid key type for by-modulation")
 
             if prev_step.supports_multiple_by:
                 prev_step.by.append(key)
             elif prev_step.by is None:
-                prev_step.by = key
+                prev_step.by = key if len(args)==0 else (key, *args)
             else:
                 raise QueryError(f"Step `{prev_step.print_query()}` does not support multiple by-modulations.")
         else:
@@ -421,7 +429,7 @@ class Traversal:
         prev_step = self.query_steps[-1]
         if prev_step.supports_fromto:
             if type(src) is not int:
-                raise QueryError("Invalid source type for from-modulation")
+                raise QueryError(f"Invalid source type `{type(src)}` for from-modulation, expected `int`")
             if prev_step.from_ is None:
                 prev_step.from_ = src
             else:
@@ -449,10 +457,24 @@ class Traversal:
         self._add_step(SideEffectStep(self, side_effect))
         return self
 
-    def property(self, key:str|List[str], value:Any) -> 'Traversal':
+    def property(self, *args) -> 'Traversal':
         from .steps.base_steps import SideEffectStep
         from mogwai.utils import get_dict_indexer
-        #keys = ['properties'] + (key if type(key) is list else [key])
+        if len(args)==2:
+            key, value = args
+            if key==Cardinality.label:
+                key = "labels"
+                value = set(value) if isinstance(value, (list,tuple, set, dict)) else {value}
+        elif len(args)==3:
+            cardinality, key, value = args
+            match cardinality:
+                case Cardinality.set_: value = set(value) if isinstance(value, (list,tuple, set, dict)) else {value}
+                case Cardinality.list_: value = list(value) if isinstance(value, (list,tuple, set, dict)) else [value]
+                case Cardinality.map_ | Cardinality.dict_: pass #we keep the value as a value
+                case _:
+                    raise ValueError("Invalid cardinality for property, expected `set`, `list`, `map` or `dict`")
+        else:
+            raise ValueError("Invalid number of arguments for `property`, expected signature (cardinality, key, value) or (key, value)")
         if isinstance(key, (tuple, list)):
             indexer = get_dict_indexer(key[:-1])
             key = key[-1]
@@ -481,9 +503,9 @@ class Traversal:
         self._add_step(HasNext(self))
         return self
 
-    def next(self) -> 'Traversal':
+    def next(self, n:int=1) -> 'Traversal':
         from .steps.terminal_steps import Next
-        self._add_step(Next(self))
+        self._add_step(Next(self, amount=n))
         return self
 
     def iter(self, by:str|List[str]=None, include_data:bool=False) -> 'Traversal':
@@ -614,12 +636,16 @@ class MogwaiGraphTraversalSource:
         self.connector = connector
         self.traversal_args = dict(optimize=optimize, eager=eager, query_verify=True, use_mp=use_mp)
 
-    def E(self, init:Tuple[int]|List[Tuple[int]]=None) -> 'Traversal':
+    def E(self, *init:Tuple[int]|List[Tuple[int]]) -> 'Traversal':
         from .steps.start_steps import E
+        if len(init) == 0: init = None
+        elif len(init) == 1: init = init[0]
         return Traversal(self, start=E(self.connector, init), **self.traversal_args)
 
-    def V(self, init:int|List[int]=None) -> 'Traversal':
+    def V(self, *init:int) -> 'Traversal':
         from .steps.start_steps import V
+        if len(init) == 0: init = None
+        elif len(init) == 1: init = init[0]
         return Traversal(self, start=V(self.connector, init), **self.traversal_args)
 
     def addE(self, relation:str, from_:int=None, to_:int=None, **kwargs) -> 'Traversal':

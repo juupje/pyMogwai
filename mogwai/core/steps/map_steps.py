@@ -1,8 +1,8 @@
 from .base_steps import MapStep
-from typing import List, Any, Iterable, Generator
+from typing import List, Any, Iterable, Generator, Callable
 from mogwai.core.traversal import Traversal, AnonymousTraversal
 from mogwai.core.traverser import Traverser, Value as TravValue, Property
-from mogwai.core.steps.scope import Scope
+from mogwai.core.steps.enums import Scope, Order as EnumOrder
 from mogwai.core.exceptions import QueryError, GraphTraversalError
 from mogwai.decorators import as_traversal_function
 from mogwai.utils import ensure_is_list, get_dict_indexer
@@ -14,7 +14,7 @@ _NA = object()
 class Value(MapStep):
     def __init__(self, traversal:Traversal):
         super().__init__(traversal)
-        def _map(t:Property)->TravValue:
+        def _map(t:Property|Any)->TravValue:
             if isinstance(t, Property): return t.to_value()
             else: raise GraphTraversalError("Cannot extract value from non-Property object.")
         self._map = _map
@@ -22,11 +22,19 @@ class Value(MapStep):
 class Key(MapStep):
     def __init__(self, traversal:Traversal):
         super().__init__(traversal)
-        def _map(t:Property)->TravValue:
+        def _map(t:Property|Any)->TravValue:
             if isinstance(t, Property): return t.to_key()
             else: raise GraphTraversalError("Cannot extract keys from non-Property object.")
         self._map = _map
-        
+
+class Id(MapStep):
+    def __init__(self, traversal:Traversal):
+        super().__init__(traversal)
+        def _map(t:Traverser|Any)->TravValue:
+            if isinstance(t, Traverser): return t.to_value(t.node_id)
+            else: raise GraphTraversalError("Cannot extract id from non-Traverser object.")
+        self._map = _map
+
 class Values(MapStep):
     def __init__(self, traversal:Traversal, *keys:str|List[str]):
         super().__init__(traversal=traversal)
@@ -240,8 +248,9 @@ class Select(MapStep):
         self._map = _map
 
 class Order(MapStep):
-    def __init__(self, traversal:Traversal, by:str|List[str]|AnonymousTraversal=None, asc:bool|None=None, **kwargs):
+    def __init__(self, traversal:Traversal, by:str|List[str]|AnonymousTraversal=None, order:EnumOrder|None=None, asc:bool|None=None, **kwargs):
         super().__init__(traversal, flags=Order.SUPPORTS_ANON_BY)
+
         desc = kwargs.get('desc', False)
         if asc is None:
             asc = True if desc is False else False
@@ -249,12 +258,38 @@ class Order(MapStep):
             from mogwai.core.exceptions import QueryError
             raise QueryError("Either `asc` or `desc` should be True")
         self.asc = asc
-        self.by = by
+        self.order = order
+        self._by = by
         logger.debug(f"Order is sorting in {('ascending' if self.asc else 'descending')} order")
 
+    @property
+    def by(self):
+        return self._by
+
+    @by.setter
+    def by(self, value):
+        if isinstance(value, tuple):
+            if len(value)==2:
+                if isinstance(value[1], EnumOrder):
+                    self.order = value[1]
+                else:
+                    raise QueryError("Invalid `order` value. Must be an enums.Order object.")
+                self._by = value[0]
+        elif isinstance(value, EnumOrder):
+            self.order = value
+        else:
+            self._by = value
+        
     def build(self):
         if isinstance(self.by, AnonymousTraversal):
             self.by._build(self.traversal)
+        if self.order is not None:
+            if self.order == EnumOrder.asc:
+                self.asc = True
+            elif self.order == EnumOrder.desc:
+                self.asc = False
+            else:
+                raise QueryError(f"Unsupported order: {self.order}")
 
     def __call__(self, traversers: Iterable[Traverser] | Iterable[Any]) -> Iterable[Traverser] | Iterable[Any]:
         def extract_first_item(x):
@@ -464,6 +499,10 @@ def value():
 @as_traversal_function
 def key():
     return Key(None)
+
+@as_traversal_function
+def id_():
+    return Id(None)
 
 @as_traversal_function
 def values(*keys:str|List[str]):

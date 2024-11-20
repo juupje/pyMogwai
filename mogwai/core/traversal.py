@@ -6,7 +6,7 @@ from mogwai.core.exceptions import GraphTraversalError
 from mogwai.core.traverser import Traverser
 from mogwai.decorators import add_camel_case_methods, with_call_order
 from mogwai.utils.type_utils import TypeUtils as tu
-from mogwai.core.steps.enums import Scope, Cardinality, Order
+from mogwai.core.steps.enums import Scope, Cardinality, Order as EnumOrder
 
 from .exceptions import QueryError
 from .mogwaigraph import MogwaiGraph
@@ -267,13 +267,17 @@ class Traversal:
 
     def order(
         self,
-        by: str | List[str] | "AnonymousTraversal" = None,
+        by: str | List[str] | EnumOrder | "AnonymousTraversal" = None,
         asc: bool | None = None,
         **kwargs,
     ) -> "Traversal":
         from .steps.map_steps import Order
-
-        self._add_step(Order(self, by, asc, **kwargs))
+        if isinstance(by, EnumOrder):
+            if asc is not None:
+                raise QueryError("Cannot provide `asc` argument when `by` is an Order")
+            self._add_step(Order(self, order=by, **kwargs))
+        else:
+            self._add_step(Order(self, by, asc=asc, **kwargs))
         return self
 
     def count(self, scope: Scope = Scope.global_) -> "Traversal":
@@ -536,7 +540,7 @@ class Traversal:
                         f"Step `{prev_step.print_query()}` does not support anonymous traversals as by-modulations."
                     )
             elif type(key) is not str:
-                if isinstance(key, Order) and prev_step.__class__.__name__=="Order":
+                if isinstance(key, EnumOrder) and prev_step.__class__.__name__=="Order":
                     pass
                 else:
                     raise QueryError("Invalid key type for by-modulation")

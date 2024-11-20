@@ -1,15 +1,21 @@
 from mogwai.core import MogwaiGraph
 from mogwai.core.steps.statics import *
 from mogwai.core.traversal import MogwaiGraphTraversalSource
-
-from .basetest import BaseTest
+from tests.basetest import BaseTest
 
 
 class TestQueries(BaseTest):
-    def setUp(self):
-        super().setUp()
+    """
+    test queries
+    """
+
+    def setUp(self, debug=True, profile=True):
+        BaseTest.setUp(self, debug=debug, profile=profile)
 
     def test_shortest_path(self):
+        """
+        test shortest path
+        """
         graph = MogwaiGraph()
         nodes = []
         for i in range(5):
@@ -34,13 +40,9 @@ class TestQueries(BaseTest):
             .select("p", "length")
             .to_list()
         )
-        print("Query:", query.print_query())
+        if self.debug:
+            print("Query:", query.print_query())
         res = query.run()
-        print("Result:", res)
+        if self.debug:
+            print("Result:", res)
         self.assertEqual(res, [[["1", "2", "4", "5"], 4]], "Incorrect result")
-
-
-if __name__ == "__main__":
-    import unittest
-
-    unittest.main()

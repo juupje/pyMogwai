@@ -1,5 +1,0 @@
-implement the following steps:
-- fold
-- unfold
-- valueMap
-- elementMap properly

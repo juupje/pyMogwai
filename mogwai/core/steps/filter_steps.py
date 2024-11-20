@@ -4,7 +4,7 @@ from mogwai.core import Traversal, AnonymousTraversal
 from mogwai.core import Traverser
 from mogwai.core.traverser import Value, Property
 from mogwai.decorators import as_traversal_function
-from mogwai.utils import get_list_type, ensure_is_list, get_dict_indexer
+from mogwai.utils.type_utils import TypeUtils as tu
 from mogwai.core.exceptions import GraphTraversalError, QueryError
 import logging
 
@@ -76,7 +76,7 @@ class Has(FilterStep):
         self.key = key
         self.label = label
         self.value = value
-        indexer = (lambda t: t.get) if key=="id" else get_dict_indexer(key, _NA)
+        indexer = (lambda t: t.get) if key=="id" else tu.get_dict_indexer(key, _NA)
         if value is None:
             self._filter = lambda t: indexer(self.traversal._get_element(t)) != _NA
         elif label is not None:
@@ -99,14 +99,14 @@ class HasWithin(FilterStep):
         super().__init__(traversal)
         self.key = key
         self.valueOptions = valueOptions
-        indexer = (lambda t: t.get) if key=="id" else get_dict_indexer(key, _NA)
+        indexer = (lambda t: t.get) if key=="id" else tu.get_dict_indexer(key, _NA)
         self._filter = lambda t: indexer(self.traversal._get_element(t)) in self.valueOptions
 
 class HasNot(FilterStep):
     def __init__(self, traversal:Traversal, key:str|List[str]):
         super().__init__(traversal)
         self.key = key
-        indexer = get_dict_indexer(key, _NA)
+        indexer = tu.get_dict_indexer(key, _NA)
         self._filter = lambda t: indexer(self.traversal._get_element(t)) == _NA
 
 class HasKey(FilterStep):
@@ -173,7 +173,7 @@ class Contains(FilterStep):
         super().__init__(traversal)
         self.key = key
         self.value = value
-        indexer = get_dict_indexer(self.key, [])
+        indexer = tu.get_dict_indexer(self.key, [])
         self._filter = lambda t: self.value in indexer(self.traversal._get_element(t))
 
 class ContainsAll(FilterStep):
@@ -189,7 +189,7 @@ class ContainsAll(FilterStep):
         else:
             _hasall = lambda x: all([v in x for v in values])
 
-        indexer = get_dict_indexer(self.key)
+        indexer = tu.get_dict_indexer(self.key)
         self._filter = lambda t: _hasall(indexer(self.traversal._get_element(t, [])))
 
 class Within(FilterStep):
@@ -198,17 +198,17 @@ class Within(FilterStep):
         super().__init__(traversal)
         self.key = key
         self.options = options
-        indexer = get_dict_indexer(key)
+        indexer = tu.get_dict_indexer(key)
         self._filter = lambda t: indexer(self.traversal._get_element(t)) in options
-        
+
 class Is(FilterStep):
     def __init__(self, traversal: Traversal, condition: Any):
         super().__init__(traversal)
         self.condition = condition
 
     def __call__(self, traversers: Iterable['Traverser']) -> 'Generator[Traverser]':
-        traversers = ensure_is_list(traversers)
-        dtype = get_list_type(traversers)
+        traversers = tu.ensure_is_list(traversers)
+        dtype = tu.get_list_type(traversers)
         if dtype is None:
             return traversers
         if issubclass(dtype, Value):
@@ -229,11 +229,11 @@ class Limit(FilterStep):
             self.counter += 1
             return self.counter <= self.n
         self._filter = _filter
-    
+
     def __call__(self, traversers: Iterable[Traverser]) -> Iterable[Traverser]:
         self.counter = 0
         return super().__call__(traversers)
-    
+
 class Range(FilterStep):
     def __init__(self, traversal: Traversal, low:int, high:int):
         super().__init__(traversal)
@@ -265,7 +265,7 @@ class Range(FilterStep):
                     return False
                 return self.counter > self.low
         self._filter = _filter
-    
+
     def __call__(self, traversers: Iterable[Traverser]) -> Iterable[Traverser]:
         if self.no_limits: return traversers
         if isinstance(traversers, (list, tuple)):
@@ -298,7 +298,7 @@ class SimplePath(FilterStep):
         self._filter = _filter
 
     def build(self):
-        self.indexer = get_dict_indexer(self.by) if self.by else None
+        self.indexer = tu.get_dict_indexer(self.by) if self.by else None
 
 class Dedup(FilterStep):
     def __init__(self, traversal: Traversal, by:str|List[str]=None):
@@ -312,17 +312,17 @@ class Dedup(FilterStep):
             else:
                 self.seen.append(obj)
                 return True
-            
+
         if self.by is None:
             self._filter = lambda t: _dedup((t.get,t.path) if isinstance(t, Traverser) else t.val)
         else:
-            indexer = get_dict_indexer(self.by, None)
+            indexer = tu.get_dict_indexer(self.by, None)
             self._filter = lambda t: (x:=indexer(self.traversal._get_element(t))) is not None and _dedup(x)
-    
+
     def __call__(self, traversers: Iterable[Traverser]) -> Iterable[Traverser]:
         self.seen = []
         return super().__call__(traversers)
-    
+
 @as_traversal_function
 def or_(optA:AnonymousTraversal, optB:AnonymousTraversal):
     return Or(None, optA, optB)
@@ -371,7 +371,7 @@ def contains(key:str|List[str], value:Any):
         return ContainsAll(None, key, value)
     else:
         return Contains(None, key, value)
-    
+
 @as_traversal_function
 def filter_(filter:AnonymousTraversal):
     return Filter(None, filter)

@@ -3,8 +3,7 @@ import unittest
 from timeit import default_timer as timer
 
 from mogwai.core.steps.statics import Scope as MogwaiScope
-
-from .basetest import BaseTest
+from tests.basetest import BaseTest
 
 
 @unittest.skip("Skipping tests")
@@ -169,9 +168,3 @@ class TestGremlinPython(BaseTest):
         print(f"gremlinpython graph got output in {diff} seconds")
         # small_file.close()
         connection.close()
-
-
-if __name__ == "__main__":
-    import unittest
-
-    unittest.main()

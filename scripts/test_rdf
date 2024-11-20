@@ -1,0 +1,243 @@
+#!/bin/bash
+# WF 2024-11-14
+# Test Turtle RDF import
+
+PORT=9999
+CONTAINER_NAME="blazegraph"
+BASE_URL="http://localhost:$PORT/bigdata"
+WEB_URL="${BASE_URL}/#query"
+ENDPOINT_URL="${BASE_URL}/namespace/kb/sparql"
+
+ENDPOINTS_YAML=/tmp/endpoints-royals.yaml
+QUERIES_YAML=/tmp/royals-queries.yaml
+
+# Function to create the Turtle file if it doesn't exist
+create_ttl_file() {
+    local ttl_file="/tmp/royal_family.ttl"
+    if [ ! -f "$ttl_file" ]
+    then
+        cat << EOF > "$ttl_file"
+@prefix royal: <http://royal.example.org/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+royal:0 royal:age 96 ;
+    royal:born_iso_date "1926-04-21" ;
+    royal:died_iso_date "2022-09-08" ;
+    royal:full_name "Elizabeth Alexandra Mary Windsor" ;
+    royal:labels "Royal" ;
+    royal:last_modified_iso "2024-11-14T08:15:47Z" ;
+    royal:lastmodified "2024-11-14T08:15:47.984554"^^xsd:dateTime ;
+    royal:name "Elizabeth-Alexandra-Mary-Windsor-Q9682" ;
+    royal:of_age true ;
+    royal:wikidata_id "Q9682" ;
+    royal:wikidata_url "https://www.wikidata.org/wiki/Q9682" .
+
+royal:1 royal:age 76 ;
+    royal:born_iso_date "1948-11-14" ;
+    royal:full_name "Charles III of the United Kingdom" ;
+    royal:labels "Royal" ;
+    royal:last_modified_iso "2024-11-14T08:15:47Z" ;
+    royal:lastmodified "2024-11-14T08:15:47.986994"^^xsd:dateTime ;
+    royal:name "Charles-III-of-the-United-Kingdom-Q43274" ;
+    royal:number_in_line 0 ;
+    royal:of_age true ;
+    royal:succeeds royal:2 ;
+    royal:wikidata_id "Q43274" ;
+    royal:wikidata_url "https://www.wikidata.org/wiki/Q43274" .
+
+royal:2 royal:age 42 ;
+    royal:born_iso_date "1982-06-21" ;
+    royal:full_name "William, Duke of Cambridge" ;
+    royal:labels "Royal" ;
+    royal:last_modified_iso "2024-11-14T08:15:47Z" ;
+    royal:lastmodified "2024-11-14T08:15:47.987027"^^xsd:dateTime ;
+    royal:name "William-Duke-of-Cambridge-Q36812" ;
+    royal:number_in_line 1 ;
+    royal:of_age true ;
+    royal:succeeds royal:3 ;
+    royal:wikidata_id "Q36812" ;
+    royal:wikidata_url "https://www.wikidata.org/wiki/Q36812" .
+
+royal:3 royal:age 11 ;
+    royal:born_iso_date "2013-07-22" ;
+    royal:full_name "Prince George of Wales" ;
+    royal:labels "Royal" ;
+    royal:last_modified_iso "2024-11-14T08:15:47Z" ;
+    royal:lastmodified "2024-11-14T08:15:47.987052"^^xsd:dateTime ;
+    royal:name "Prince-George-of-Wales-Q13590412" ;
+    royal:number_in_line 2 ;
+    royal:of_age false ;
+    royal:succeeds royal:4 ;
+    royal:wikidata_id "Q13590412" ;
+    royal:wikidata_url "https://www.wikidata.org/wiki/Q13590412" .
+
+royal:4 royal:age 9 ;
+    royal:born_iso_date "2015-05-02" ;
+    royal:full_name "Princess Charlotte of Wales" ;
+    royal:labels "Royal" ;
+    royal:last_modified_iso "2024-11-14T08:15:47Z" ;
+    royal:lastmodified "2024-11-14T08:15:47.987073"^^xsd:dateTime ;
+    royal:name "Princess-Charlotte-of-Wales-Q18002970" ;
+    royal:number_in_line 3 ;
+    royal:of_age false ;
+    royal:succeeds royal:5 ;
+    royal:wikidata_id "Q18002970" ;
+    royal:wikidata_url "https://www.wikidata.org/wiki/Q18002970" .
+
+royal:5 royal:age 6 ;
+    royal:born_iso_date "2018-04-23" ;
+    royal:full_name "Prince Louis of Wales" ;
+    royal:labels "Royal" ;
+    royal:last_modified_iso "2024-11-14T08:15:47Z" ;
+    royal:lastmodified "2024-11-14T08:15:47.987093"^^xsd:dateTime ;
+    royal:name "Prince-Louis-of-Wales-Q38668629" ;
+    royal:number_in_line 4 ;
+    royal:of_age false ;
+    royal:succeeds royal:6 ;
+    royal:wikidata_id "Q38668629" ;
+    royal:wikidata_url "https://www.wikidata.org/wiki/Q38668629" .
+
+royal:6 royal:age 40 ;
+    royal:born_iso_date "1984-09-15" ;
+    royal:full_name "Harry Duke of Sussex" ;
+    royal:labels "Royal" ;
+    royal:last_modified_iso "2024-11-14T08:15:47Z" ;
+    royal:lastmodified "2024-11-14T08:15:47.987111"^^xsd:dateTime ;
+    royal:name "Harry-Duke-of-Sussex-Q152316" ;
+    royal:number_in_line 5 ;
+    royal:of_age true ;
+    royal:wikidata_id "Q152316" ;
+    royal:wikidata_url "https://www.wikidata.org/wiki/Q152316" .
+EOF
+      echo "Created sample Turtle file at $ttl_file"
+    else
+        echo "Turtle file already exists at $ttl_file"
+    fi
+}
+
+# Function to create the endpoints YAML file
+create_endpoints_yaml() {
+    cat << EOF > $ENDPOINTS_YAML
+'blazegraph-royals':
+  endpoint: http://localhost:9999/bigdata/namespace/kb/sparql
+  website: http://localhost:9999/bigdata/
+  database: blazegraph
+  method: POST
+  lang: sparql
+  prefixes: |
+    PREFIX royal: <http://royal.example.org/>
+    PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+EOF
+    echo "Created $ENDPOINTS_YAML"
+}
+
+# Function to create the queries YAML file
+create_queries_yaml() {
+    cat << EOF > $QUERIES_YAML
+'RoyalFamily':
+  sparql: |
+    PREFIX royal: <http://royal.example.org/>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+    SELECT ?id ?name ?succeeds_id ?succeeds_name ?wikidata ?born ?died
+    WHERE {
+      ?person royal:full_name ?name .
+      BIND(REPLACE(str(?person), "http://royal.example.org/", "") as ?id)
+      OPTIONAL {
+        ?person royal:succeeds ?succeeds .
+        BIND(REPLACE(str(?succeeds), "http://royal.example.org/", "") as ?succeeds_id)
+        ?succeeds royal:full_name ?succeeds_name
+      }
+      OPTIONAL { ?person royal:wikidata_id ?wikidata }
+      OPTIONAL { ?person royal:born_iso_date ?born }
+      OPTIONAL { ?person royal:died_iso_date ?died }
+    }
+    ORDER BY ?id
+EOF
+    echo "Created $QUERIES_YAML"
+}
+
+# Function to wait for Blazegraph to be ready
+wait_for_blazegraph() {
+    local retries=0
+    local max_retries=50  # Waits up to 10 seconds (50 * 200 ms)
+    printf "Waiting for Blazegraph to initialize"
+
+    while ! curl -s "$ENDPOINT_URL" > /dev/null; do
+        sleep 0.2
+        retries=$((retries + 1))
+        printf "."
+
+        if [ "$retries" -ge "$max_retries" ]; then
+            echo -e "\nBlazegraph did not start within the expected time."
+            exit 1
+        fi
+    done
+    echo -e "\nBlazegraph is ready!"
+}
+
+# Function to start Blazegraph Docker container
+start_blazegraph() {
+    # Remove existing container if it exists
+    if [ "$(docker ps -aq -f name=$CONTAINER_NAME)" ]; then
+        docker rm -f $CONTAINER_NAME
+    fi
+    docker run -d --name $CONTAINER_NAME -p $PORT:8080 lyrasis/blazegraph:2.1.5
+}
+
+# Open the Blazegraph web interface on successful wait with OS detection
+open_web_url() {
+    case "$(uname)" in
+        Darwin*) open "$WEB_URL" ;;  # macOS
+        Linux*) xdg-open "$WEB_URL" ;;  # Linux
+        *) echo "Automatic browser opening is not supported on this OS." ;;
+    esac
+}
+
+# Function to import RDF Turtle file
+import_rdf() {
+    curl -X POST --data-binary @/tmp/royal_family.ttl \
+    -H "Content-Type: text/turtle" \
+    "$ENDPOINT_URL?context-uri=http://example.org/royal"
+}
+
+# Function to run SPARQL query
+run_sparql_query() {
+    curl -G "$ENDPOINT_URL" \
+    --data-urlencode "query=SELECT * WHERE { ?s ?p ?o }"
+}
+
+# Function to run named query
+run_named_query() {
+  local format="$1"
+  # ep: endpoints path
+  # en: endpoints name
+  # qp: query path
+  # qn: query name
+  sparqlquery --debug \
+    -ep "$ENDPOINTS_YAML" \
+    -en blazegraph-royals \
+    -qp "$QUERIES_YAML" \
+    -qn RoyalFamily \
+    -f $format
+}
+
+# Function to stop Blazegraph
+stop_blazegraph() {
+    docker stop blazegraph
+    docker rm blazegraph
+}
+
+# Run the steps
+create_ttl_file
+start_blazegraph
+wait_for_blazegraph
+open_web_url
+import_rdf
+run_sparql_query
+create_endpoints_yaml
+create_queries_yaml
+for format in github json
+do
+  run_named_query $format
+done
+#stop_blazegraph

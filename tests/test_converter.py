@@ -1,9 +1,13 @@
 import os
 
-from .basetest import BaseTest
+from tests.basetest import BaseTest
 
 
-class TestParser(BaseTest):
+class TestConverters(BaseTest):
+    """
+    test powerpoint and excel converters
+    """
+
     def test_pp_converter(self):
         from mogwai.parser.powerpoint_converter import ppt_to_dic
 
@@ -23,9 +27,3 @@ class TestParser(BaseTest):
         self.assertEqual(creator, "Marcel Grün", "wrong creator")
         self.assertEqual(s1c1v1, "a3", "wrong cell value")
         print("test_excel_converter successfully")
-
-
-if __name__ == "__main__":
-    import unittest
-
-    unittest.main()

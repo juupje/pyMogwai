@@ -1,6 +1,6 @@
 import os
 from mogwai.parser.powerpoint_converter import PPGraph
-from .basetest import BaseTest
+from tests.basetest import BaseTest
 
 class TestPowerPoint(BaseTest):
     def setUp(self):
@@ -19,14 +19,8 @@ class TestPowerPoint(BaseTest):
         )
         nodes = graph.get_nodes("PPPage", "page2")
         self.assertGreater(len(nodes), 0, "No slide named 'Resources'")
-        self.assertEqual(nodes[0][1]["title"], "Resources", "Title wrong" )
-        self.assertEqual(nodes[0][1]["page"], 2,"Page number wrong")
+        self.assertEqual(nodes[0][1]["title"], "Resources", "Title wrong")
+        self.assertEqual(nodes[0][1]["page"], 2, "Page number wrong")
         graph.draw(os.path.join(self.root_path, "tests", "pp_test.svg"), "dot")
         g = PPGraph(self.midterm)
         g.draw(os.path.join(self.root_path, "tests", "midterm.svg"), "dot")
-
-
-if __name__ == "__main__":
-    import unittest
-
-    unittest.main()

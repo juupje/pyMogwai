@@ -1,6 +1,8 @@
 import unittest
+
 from mogwai.core.traversal import MogwaiGraphTraversalSource
-from .basetest import BaseTest
+from tests.basetest import BaseTest
+
 
 class TestLiveDemo(BaseTest):
     def setUp(self):
@@ -149,9 +151,3 @@ class TestLiveDemo(BaseTest):
         res = query.run()
         print("Result length", len(res))
         # self.assertTrue(len(res)==555028, "Incorrect result, expected 555028")
-
-
-if __name__ == "__main__":
-    import unittest
-
-    unittest.main()

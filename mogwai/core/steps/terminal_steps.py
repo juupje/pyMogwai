@@ -36,20 +36,6 @@ class ToList(Step):
         return convert_func(traversers)'''
         return list(AsGenerator(self.traversal, by=self.by, include_data=self.data)(traversers))
 
-class Next(Step):
-    def __init__(self, traversal:Iterable):
-        super().__init__(traversal, flags=Step.ISTERMINAL)
-
-    def __call__(self, traversers:Iterable[Traverser]|Iterable[Value]|Iterable[Property]) -> Any:
-        x = next(iter(traversers), False)
-        if isinstance(x, Traverser):
-            return x.get
-        elif isinstance(x, Property):
-            return {x.key: x.value}
-        elif isinstance(x, Value):
-            return x.value
-        else: return x
-
 class AsGenerator(Step):
     def __init__(self, traversal:Traversal, by:List[str]|str=None, include_data:bool=True, **kwargs):
         super().__init__(traversal, flags=Step.ISTERMINAL|Step.SUPPORTS_BY, **kwargs)
@@ -78,6 +64,17 @@ class AsGenerator(Step):
             else:
                 return trav
         return (convert_func(trav) for trav in traversers)
+
+class Next(AsGenerator):
+    def __init__(self, traversal:Iterable, amount:int=1, include_data=False,**kwargs):
+        super().__init__(traversal, include_data=False, **kwargs)
+        self.amount = amount
+
+    def __call__(self, traversers:Iterable[Traverser]|Iterable[Value]|Iterable[Property]) -> Any:
+        if self.amount == 1:
+            return next(super().__call__(traversers), False)
+        else:
+            return [next(super().__call__(traversers), False) for _ in range(self.amount)]
 
 class HasNext(Step):
     def __init__(self, traversal:Iterable):

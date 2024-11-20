@@ -373,7 +373,7 @@ def contains(key:str|List[str], value:Any):
         return Contains(None, key, value)
 
 @as_traversal_function
-def filter(filter:AnonymousTraversal):
+def filter_(filter:AnonymousTraversal):
     return Filter(None, filter)
 
 @as_traversal_function

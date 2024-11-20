@@ -106,6 +106,7 @@ tests/debugger.py
 #ignore temporary files
 ./time_queries.py
 tests/queries.txt
+tests/queries-sanitized.txt
 
 #mdocs
 docs/

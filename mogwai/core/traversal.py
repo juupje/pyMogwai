@@ -3,10 +3,10 @@ from typing import TYPE_CHECKING, Any, Callable, Iterable, List, Set, Tuple
 
 from mogwai.config import DEFAULT_ITERATION_DEPTH, USE_MULTIPROCESSING
 from mogwai.core.exceptions import GraphTraversalError
-from mogwai.core.steps.scope import Scope
 from mogwai.core.traverser import Traverser
 from mogwai.decorators import add_camel_case_methods, with_call_order
 from mogwai.utils.type_utils import TypeUtils as tu
+from mogwai.core.steps.enums import Scope, Cardinality, Order as EnumOrder
 
 from .exceptions import QueryError
 from .mogwaigraph import MogwaiGraph
@@ -219,6 +219,11 @@ class Traversal:
     def identity(self) -> "Traversal":  # required for math reasons
         return self
 
+    def id_(self) -> 'Traversal':
+        from .steps.map_steps import Id
+        self._add_step(Id(self))
+        return self
+
     # Important: `value` extract values from *Property's*
     # `values` extracts values from *elements*!
     # So, .properties(key).value() is the same as .values(key)
@@ -262,13 +267,17 @@ class Traversal:
 
     def order(
         self,
-        by: str | List[str] | "AnonymousTraversal" = None,
+        by: str | List[str] | EnumOrder | "AnonymousTraversal" = None,
         asc: bool | None = None,
         **kwargs,
     ) -> "Traversal":
         from .steps.map_steps import Order
-
-        self._add_step(Order(self, by, asc, **kwargs))
+        if isinstance(by, EnumOrder):
+            if asc is not None:
+                raise QueryError("Cannot provide `asc` argument when `by` is an Order")
+            self._add_step(Order(self, order=by, **kwargs))
+        else:
+            self._add_step(Order(self, by, asc=asc, **kwargs))
         return self
 
     def count(self, scope: Scope = Scope.global_) -> "Traversal":
@@ -521,7 +530,8 @@ class Traversal:
         self._add_step(As(self, name))
         return self
 
-    def by(self, key: str | List[str] | "AnonymousTraversal") -> "Traversal":
+
+    def by(self, key: str | List[str] | "AnonymousTraversal", *args) -> "Traversal":
         prev_step = self.query_steps[-1]
         if prev_step.supports_by:
             if isinstance(key, AnonymousTraversal):
@@ -530,12 +540,15 @@ class Traversal:
                         f"Step `{prev_step.print_query()}` does not support anonymous traversals as by-modulations."
                     )
             elif type(key) is not str:
-                raise QueryError("Invalid key type for by-modulation")
+                if isinstance(key, EnumOrder) and prev_step.__class__.__name__=="Order":
+                    pass
+                else:
+                    raise QueryError("Invalid key type for by-modulation")
 
             if prev_step.supports_multiple_by:
                 prev_step.by.append(key)
             elif prev_step.by is None:
-                prev_step.by = key
+                prev_step.by = key if len(args)==0 else (key, *args)
             else:
                 raise QueryError(
                     f"Step `{prev_step.print_query()}` does not support multiple by-modulations."
@@ -550,7 +563,7 @@ class Traversal:
         prev_step = self.query_steps[-1]
         if prev_step.supports_fromto:
             if type(src) is not str:
-                raise QueryError("Invalid source type for from-modulation: str needed!")
+                raise QueryError(f"Invalid source type `{type(src)}` for from-modulation: str needed!")
             if prev_step.from_ is None:
                 prev_step.from_ = src
             else:
@@ -589,10 +602,23 @@ class Traversal:
         self._add_step(SideEffectStep(self, side_effect))
         return self
 
-    def property(self, key: str | List[str], value: Any) -> "Traversal":
+    def property(self, *args) -> 'Traversal':
         from .steps.base_steps import SideEffectStep
-
-        # keys = ['properties'] + (key if type(key) is list else [key])
+        if len(args)==2:
+            key, value = args
+            if key==Cardinality.label:
+                key = "labels"
+                value = set(value) if isinstance(value, (list,tuple, set, dict)) else {value}
+        elif len(args)==3:
+            cardinality, key, value = args
+            match cardinality:
+                case Cardinality.set_: value = set(value) if isinstance(value, (list,tuple, set, dict)) else {value}
+                case Cardinality.list_: value = list(value) if isinstance(value, (list,tuple, set, dict)) else [value]
+                case Cardinality.map_ | Cardinality.dict_: pass #we keep the value as a value
+                case _:
+                    raise ValueError("Invalid cardinality for property, expected `set`, `list`, `map` or `dict`")
+        else:
+            raise ValueError("Invalid number of arguments for `property`, expected signature (cardinality, key, value) or (key, value)")
         if isinstance(key, (tuple, list)):
             indexer = tu.get_dict_indexer(key[:-1])
             key = key[-1]
@@ -628,10 +654,9 @@ class Traversal:
         self._add_step(HasNext(self))
         return self
 
-    def next(self) -> "Traversal":
+    def next(self, n:int=1) -> 'Traversal':
         from .steps.terminal_steps import Next
-
-        self._add_step(Next(self))
+        self._add_step(Next(self, amount=n))
         return self
 
     def iter(
@@ -811,18 +836,20 @@ class MogwaiGraphTraversalSource:
             optimize=optimize, eager=eager, query_verify=True, use_mp=use_mp
         )
 
-    def E(self, init: Tuple[int] | List[Tuple[int]] = None) -> "Traversal":
+    def E(self, *init:Tuple[str]|List[Tuple[str]]) -> 'Traversal':
         from .steps.start_steps import E
-
+        if len(init) == 0: init = None
+        elif len(init) == 1: init = init[0]
         return Traversal(self, start=E(self.connector, init), **self.traversal_args)
 
-    def V(self, init: int | List[int] = None) -> "Traversal":
+    def V(self, *init:str) -> 'Traversal':
         from .steps.start_steps import V
-
+        if len(init) == 0: init = None
+        elif len(init) == 1: init = init[0]
         return Traversal(self, start=V(self.connector, init), **self.traversal_args)
 
     def addE(
-        self, relation: str, from_: int = None, to_: int = None, **kwargs
+        self, relation: str, from_: str = None, to_: str = None, **kwargs
     ) -> "Traversal":
         from .steps.start_steps import AddE
 

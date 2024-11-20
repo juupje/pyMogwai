@@ -1,7 +1,7 @@
 from ..traverser import Traverser
 from typing import Any, Callable, Iterable
 from abc import abstractmethod
-from ..exceptions import GraphTraversalError
+from ..exceptions import GraphTraversalError, QueryError
 import typing
 if typing.TYPE_CHECKING:
     from mogwai.core.traversal import Traversal, AnonymousTraversal
@@ -19,6 +19,7 @@ class Step:
     def __init__(self, traversal:'Traversal', flags:int=0):
         self.traversal = traversal
         self.flags = flags
+        self._by = None
 
     @property
     def isstart(self):

@@ -1,8 +1,8 @@
 import unittest
 
 from mogwai.core.traversal import MogwaiGraphTraversalSource
+from mogwai.core.steps.enums import Order
 from tests.basetest import BaseTest
-
 
 class TestLiveDemo(BaseTest):
     def setUp(self):
@@ -91,7 +91,6 @@ class TestLiveDemo(BaseTest):
 
     def test_from_nearby_airports(self):
         from mogwai.core.steps.statics import select
-
         query = (
             self.g.V()
             .has_label("airport")
@@ -106,7 +105,7 @@ class TestLiveDemo(BaseTest):
             .in_("contains")
             .has_label("country")
             .as_("dest")
-            .order(desc=True)
+            .order(Order.desc)
             .by(select("e").values("dist"))
             .limit(5)
             .select("start", "dest")
@@ -140,7 +139,7 @@ class TestLiveDemo(BaseTest):
             .path()
             .as_("p")
             .count(Scope.local)
-            .order(asc=True)
+            .order(Order.asc)
             .as_("length")
             .dedup()
             .select("dest", "length")

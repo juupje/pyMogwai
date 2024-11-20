@@ -9,7 +9,7 @@ class V(Step):
     def __init__(self, graph:MogwaiGraph, init:int|List[int]=None):
         super().__init__(None, flags=Step.ISSTART)
         self.graph = graph
-        self.init = init if init is None or isinstance(init, list) else [init]
+        self.init = init if init is None or isinstance(init, (list, tuple)) else [init]
 
     def set_traversal(self, traversal:Traversal):
         self.traversal = traversal

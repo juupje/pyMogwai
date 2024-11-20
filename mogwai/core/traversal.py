@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING, Any, Callable, Iterable, List, Set, Tuple
 
 from mogwai.config import DEFAULT_ITERATION_DEPTH, USE_MULTIPROCESSING
 from mogwai.core.exceptions import GraphTraversalError
-from mogwai.core.steps.scope import Scope
 from mogwai.core.traverser import Traverser
 from mogwai.decorators import add_camel_case_methods, with_call_order
 from mogwai.utils.type_utils import TypeUtils as tu
@@ -528,7 +527,7 @@ class Traversal:
         return self
 
 
-    def by(self, key: str | List[str] | "AnonymousTraversal") -> "Traversal":
+    def by(self, key: str | List[str] | "AnonymousTraversal", *args) -> "Traversal":
         prev_step = self.query_steps[-1]
         if prev_step.supports_by:
             if isinstance(key, AnonymousTraversal):

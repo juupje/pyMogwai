@@ -177,6 +177,9 @@ class Property(Value):
         val = Value(self.key, dtype=str)
         val.cache = deepcopy(self.cache)
         return val
+    
+    def to_dict(self):
+        return {self.key: self.val}
 
     def __str__(self):
         return f"{self.__class__.__qualname__}[key={self.key}, value={self.val}]"

@@ -279,6 +279,11 @@ class Traversal:
         else:
             self._add_step(Order(self, by, asc=asc, **kwargs))
         return self
+    
+    def fold(self, seed:Any=None, foldfunc:Callable[[Any,Any],Any]=None):
+        from .steps.map_steps import Fold
+        self._add_step(Fold(self, seed, foldfunc))
+        return self
 
     def count(self, scope: Scope = Scope.global_) -> "Traversal":
         from .steps.map_steps import Count
@@ -702,7 +707,7 @@ class Traversal:
                 for step in self.query_steps:
                     logger.debug("Running step:" + str(step))
                     self.traversers = step(self.traversers)
-                    if not type(self.traversers) is list:
+                    if not type(self.traversers) is list and not step.isterminal: # terminal steps could produce any type of output
                         self.traversers = list(self.traversers)
             except Exception as e:
                 raise GraphTraversalError(

@@ -350,6 +350,56 @@ class Order(MapStep):
         else:
             return super().print_query()
 
+class Fold(MapStep):
+    def __init__(self, traversal:Traversal, seed:Any=None, foldfunc:Callable[[Any,Any], Any]=None):
+        """
+        Combine all traversers into a single Value containing a list of all traversers.
+        If `seed` and `foldfunc` are provided, the traversers will be reduced into a single value using the provided function.
+        For example, `g.V().values('age').fold(0, lambda x,y: x+y).next()` will result in the sum of all ages.
+        
+        Parameters
+        -----------
+        seed: Any, optional
+            The initial value to start the fold with.
+        foldfunc: Callable[[Any,Any], Any], optional
+            The bi-function to use to reduce the traversers into a single value.
+        """
+        super().__init__(traversal)
+        self.seed=seed
+        self.foldfunc=foldfunc
+        if((seed is None) ^ (foldfunc is None)):
+            raise QueryError("`seed` and `foldfunc` should be both None or both not None.")
+        
+    def __call__(self, traversers:Iterable[Traverser]) -> List[Traverser]:
+        if self.seed is not None:
+            from functools import reduce
+            #if the traversers are values, we need to extract the values first
+            def _map(t:Traverser|TravValue|Property):
+                if isinstance(t, TravValue):
+                    return t.val
+                elif isinstance(t, Property):
+                    return t.to_dict()
+                else:
+                    raise GraphTraversalError("Cannot reduce fold of non-value/property traversers.")
+            traversers = list(map(_map, traversers))
+            return [TravValue(reduce(self.foldfunc, traversers, self.seed))]
+        else:
+            def _map(t:Traverser|TravValue|Property):
+                if isinstance(t, TravValue):
+                    return t.val
+                elif isinstance(t, Property):
+                    return t.to_dict()
+                else:
+                    return t.get
+        return [TravValue(list(map(_map, traversers)))]
+    
+    def print_query(self) -> str:
+        base = super().print_query()
+        if self.seed:
+            return f"{base}({self.seed}, {self.foldfunc})"
+        else:
+            return base
+
 class Path(MapStep):
     def __init__(self, traversal:Traversal, by:str|List[str]=None):
         super().__init__(traversal, flags=Path.SUPPORTS_BY|Path.NEEDS_PATH)
@@ -523,6 +573,10 @@ def properties(*keys:str|List[str]):
 @as_traversal_function
 def select(*args:str, by:str=None):
     return Select(None, keys=args[0] if len(args)==1 else list(args), by=by)
+
+@as_traversal_function
+def fold(seed:Any=None, foldfunc:Callable[[Any,Any], Any]=None):
+    return Fold(None, seed, foldfunc)
 
 @as_traversal_function
 def path(by:str|List[str]):

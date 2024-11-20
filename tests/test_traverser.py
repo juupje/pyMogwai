@@ -239,3 +239,18 @@ class TestTraverser(BaseTest):
         if self.debug:
             print(f"Result: {res}")
         self.assertEqual(res, {"likes": True}, "Node not added to graph")
+
+    
+    def test_fold(self):
+        g = Trav.MogwaiGraphTraversalSource(self.modern)
+        query = g.V().has_label("Person").values("name").fold().next()
+        print(f"Query: {query.print_query()}")
+        res = query.run()
+        print(f"Result: {res}")
+        self.assertEqual(set(res), {"marko", "vadas", "josh", "peter"})
+
+        query = g.V().values("age").fold(0, lambda a, b: a + b).next()
+        print(f"Query: {query.print_query()}")
+        res = query.run()
+        print(f"Result: {res}")
+        self.assertEqual(res, 29+35+32+27)

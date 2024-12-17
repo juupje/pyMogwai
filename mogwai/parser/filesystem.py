@@ -55,7 +55,7 @@ class FileSystemGraph(MogwaiGraph):
                 if parent_node is None:
                     raise ValueError("A filesystem graph can not be just one file")
                 subgraph = get_subgraph(current_path)
-                self.merge_subgraph(subgraph, parent_node, subgraph.root, "HAS_FILE")
+                self.merge(subgraph, parent_node, subgraph.root, "HAS_FILE")
             else:
                 node = self.add_labeled_node(
                     name=os.path.basename(current_path),

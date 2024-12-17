@@ -196,10 +196,9 @@ class TestTraverser(BaseTest):
         print("Result:", res)
         self.assertEqual(set(res), {"josh", "vadas"})
 
-    """
-    def test_has_properties(self):
+    def test_has(self):
         g = Trav.MogwaiGraphTraversalSource(self.modern)
-        query = g.V().out().has_property("age",32).value("name").to_list()
+        query = g.V().out().has("age",32).values("name").to_list()
         print(f"Query: {query.print_query()}")
         res = query.run()
         print(f"Result: {res}")
@@ -207,12 +206,11 @@ class TestTraverser(BaseTest):
 
 
         #g = Trav.MogwaiGraphTraversalSource(self.modern)
-        query = g.V().has_property("lang").value("name").to_list()
+        query = g.V().has("lang").values("name").to_list()
         print(f"Query: {query.print_query()}")
         res = query.run()
         print(f"Result: {res}")
         self.assertTrue(res[0]  in ["lop", "ripple"], "Query result incorrect")
-    """
 
     def test_addV_and_addE(self):
         """

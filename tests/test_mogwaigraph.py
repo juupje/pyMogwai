@@ -52,7 +52,7 @@ class TestMogwaiGraph(BaseTest):
         )
         Sam = G2.add_labeled_node(label="Character", name="Sam", properties={"Age": 28})
         G2.add_labeled_edge(Frodo, Sam, "Companions")
-        self.G.merge_subgraph(G2, "0", Frodo, "Guide")
+        self.G.merge(G2, "0", Frodo, "Guide")
         self.G.draw(os.path.join(self.root_path, "tests", "merge_test.svg"))
 
     def test_missing_node(self):

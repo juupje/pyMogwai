@@ -1,6 +1,3 @@
-import re
-__pattern = re.compile(r'(?<!^)(?=[A-Z])') #A simple CamelCase detector
-import sys
 from types import FunctionType
 from functools import wraps
 from typing import Callable, TYPE_CHECKING

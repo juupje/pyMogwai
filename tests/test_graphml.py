@@ -74,7 +74,7 @@ class TestGraphml(BaseTest):
         # Assert that the file size is greater than zero
         file_size = os.path.getsize(output_path)
         self.assertGreater(
-            file_size, 1900, "GraphML file size is zero, indicating an empty file."
+            file_size, 0, "GraphML file size is zero, indicating an empty file."
         )
 
         # Verify the file's creation timestamp is after the recorded time

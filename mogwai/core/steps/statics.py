@@ -4,7 +4,7 @@ from .flatmap_steps import out, outE, outV, in_, inV, both, bothV, bothE
 from .map_steps import properties, value, values, key, id_, select, path, count, min_, max_, mean, sum_, element_map
 from .modulation_steps import as_, until, emit
 from .predicates import *
-from .enums import Scope, Cardinality, Order
+from .enums import Scope, Cardinality, Order, IO
 desc, asc = Order.desc, Order.asc
 local, global_ = Scope.local, Scope.global_
 single, map_, list_, set_, dict_ = Cardinality.single, Cardinality.map_, Cardinality.list_, Cardinality.set_, Cardinality.dict_

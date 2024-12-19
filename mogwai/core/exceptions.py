@@ -14,3 +14,8 @@ class MogwaiGraphError(Exception):
     def __init__(self, message="Graph did strange things"):
         self.message = message
         super().__init__(self.message)
+
+class IOError(Exception):
+    def __init__(self, message="IO failed"):
+        self.message = message
+        super().__init__(self.message)

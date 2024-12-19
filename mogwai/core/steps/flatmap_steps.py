@@ -1,7 +1,7 @@
 from .base_steps import FlatMapStep
 from typing import Iterable
 from mogwai.core import Traversal
-from mogwai.core import Traverser
+from mogwai.core.traverser import Traverser, Value as TravValue, Property
 from mogwai.decorators import as_traversal_function
 from mogwai.core.exceptions import GraphTraversalError
 from mogwai.utils.type_utils import TypeUtils as tu
@@ -144,6 +144,25 @@ class BothV(FlatMapStep):
         if not all((t.is_edge for t in traversers)): #make sure to use a generator here!
             raise GraphTraversalError(f"{self.__class__.__name__} cannot be applied to vertices.")
         return super().__call__(traversers=traversers)
+
+class Unfold(FlatMapStep):
+    def __init__(self, traversal:Traversal):
+        super().__init__(traversal)
+        def _map(t:Traverser|TravValue|Property):
+            if isinstance(t, TravValue):
+                #see if the value is an iterable
+                if(t.val is not None and hasattr(t.val, '__iter__')):
+                    if isinstance(t.val, dict):
+                        return [t.to(Property(k,v)) for k,v in t.val.items()]
+                    else:
+                        return [t.to(TravValue(x)) for x in t.val]
+                else:
+                    return [t]
+            elif isinstance(t, Property):
+                return [t.to_value(x) for x in tu.ensure_is_list(t.val)]
+            else:
+                return [t]
+        self._map = _map
 
 @as_traversal_function
 def out(direction: str=None):

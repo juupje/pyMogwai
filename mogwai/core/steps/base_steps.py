@@ -15,6 +15,7 @@ class Step:
     SUPPORTS_ANON_BY = 1<<4 | SUPPORTS_BY
     SUPPORTS_MULTIPLE_BY = 1<<5 | SUPPORTS_BY
     SUPPORTS_FROMTO = 1<<6
+    SUPPORTS_WITH = 1<<7
 
     def __init__(self, traversal:'Traversal', flags:int=0):
         self.traversal = traversal

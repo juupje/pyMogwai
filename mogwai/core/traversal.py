@@ -279,6 +279,11 @@ class Traversal:
         else:
             self._add_step(Order(self, by, asc=asc, **kwargs))
         return self
+    
+    def fold(self, seed:Any=None, foldfunc:Callable[[Any,Any],Any]=None):
+        from .steps.map_steps import Fold
+        self._add_step(Fold(self, seed, foldfunc))
+        return self
 
     def count(self, scope: Scope = Scope.global_) -> "Traversal":
         from .steps.map_steps import Count
@@ -441,6 +446,53 @@ class Traversal:
         self._add_step(Union(self, *traversals))
         return self
 
+    ## ===== SIDE EFFECT STEPS ======
+    def side_effect(
+        self, side_effect: "AnonymousTraversal|Callable[[Traverser], None]"
+    ) -> "Traversal":
+        from .steps.base_steps import SideEffectStep
+
+        self._add_step(SideEffectStep(self, side_effect))
+        return self
+
+    def property(self, *args) -> 'Traversal':
+        from .steps.base_steps import SideEffectStep
+        if len(args)==2:
+            key, value = args
+            if key==Cardinality.label:
+                key = "labels"
+                value = set(value) if isinstance(value, (list,tuple, set, dict)) else {value}
+        elif len(args)==3:
+            cardinality, key, value = args
+            match cardinality:
+                case Cardinality.set_: value = set(value) if isinstance(value, (list,tuple, set, dict)) else {value}
+                case Cardinality.list_: value = list(value) if isinstance(value, (list,tuple, set, dict)) else [value]
+                case Cardinality.map_ | Cardinality.dict_: pass #we keep the value as a value
+                case _:
+                    raise ValueError("Invalid cardinality for property, expected `set`, `list`, `map` or `dict`")
+        else:
+            raise ValueError("Invalid number of arguments for `property`, expected signature (cardinality, key, value) or (key, value)")
+        if isinstance(key, (tuple, list)):
+            indexer = tu.get_dict_indexer(key[:-1])
+            key = key[-1]
+        else:
+            indexer = lambda x: x
+
+        def effect(t: "Traverser"):
+            indexer(self._get_element(t))[key] = value
+
+        self._add_step(SideEffectStep(self, side_effect=effect))
+        return self
+
+     ## ===== IO =====
+    def io(self, file_path: str, read: bool = None, write: bool = None) -> "Traversal":
+        from .steps.io_step import IO
+        if read is not None and write is not None:
+            if not read ^ write:
+                raise QueryError("read and write cannot be both true or both false")
+        self._add_step(IO(self, file_path, read=read, write=write))
+        return self
+
     ## ===== MODULATION STEPS ======
     def option(self, branchKey, OptionStep: "AnonymousTraversal") -> "Traversal":
         from .steps.branch_steps import Branch
@@ -530,7 +582,6 @@ class Traversal:
         self._add_step(As(self, name))
         return self
 
-
     def by(self, key: str | List[str] | "AnonymousTraversal", *args) -> "Traversal":
         prev_step = self.query_steps[-1]
         if prev_step.supports_by:
@@ -593,42 +644,37 @@ class Traversal:
             )
         return self
 
-    ## ===== SIDE EFFECT STEPS ======
-    def side_effect(
-        self, side_effect: "AnonymousTraversal|Callable[[Traverser], None]"
-    ) -> "Traversal":
-        from .steps.base_steps import SideEffectStep
-
-        self._add_step(SideEffectStep(self, side_effect))
+    def with_(self, *args) -> "Traversal":
+        prev_step = self.query_steps[-1]
+        if prev_step.flags & Step.SUPPORTS_WITH:
+            if prev_step.with_ is None:
+                prev_step.with_ = args
+            else:
+                raise QueryError(
+                    f"Step `{prev_step.print_query()}` does not support multiple with-modulations."
+                )
+        else:
+            raise QueryError(
+                f"Step `{prev_step.print_query()}` does not support with-modulation."
+            )
         return self
 
-    def property(self, *args) -> 'Traversal':
-        from .steps.base_steps import SideEffectStep
-        if len(args)==2:
-            key, value = args
-            if key==Cardinality.label:
-                key = "labels"
-                value = set(value) if isinstance(value, (list,tuple, set, dict)) else {value}
-        elif len(args)==3:
-            cardinality, key, value = args
-            match cardinality:
-                case Cardinality.set_: value = set(value) if isinstance(value, (list,tuple, set, dict)) else {value}
-                case Cardinality.list_: value = list(value) if isinstance(value, (list,tuple, set, dict)) else [value]
-                case Cardinality.map_ | Cardinality.dict_: pass #we keep the value as a value
-                case _:
-                    raise ValueError("Invalid cardinality for property, expected `set`, `list`, `map` or `dict`")
+    def read(self) ->  "Traversal":
+        from .steps.io_step import IO
+        prev_step = self.query_steps[-1]
+        if isinstance(prev_step, IO):
+            prev_step.read = True
         else:
-            raise ValueError("Invalid number of arguments for `property`, expected signature (cardinality, key, value) or (key, value)")
-        if isinstance(key, (tuple, list)):
-            indexer = tu.get_dict_indexer(key[:-1])
-            key = key[-1]
+            raise QueryError(f"the read() step can only be used after an IO step.")
+        return self
+    
+    def write(self) ->  "Traversal":
+        from .steps.io_step import IO
+        prev_step = self.query_steps[-1]
+        if isinstance(prev_step, IO):
+            prev_step.write = True
         else:
-            indexer = lambda x: x
-
-        def effect(t: "Traverser"):
-            indexer(self._get_element(t))[key] = value
-
-        self._add_step(SideEffectStep(self, side_effect=effect))
+            raise QueryError(f"the write() step can only be used after an IO step.")
         return self
 
     ## ===== TERMINAL STEPS ======
@@ -702,7 +748,7 @@ class Traversal:
                 for step in self.query_steps:
                     logger.debug("Running step:" + str(step))
                     self.traversers = step(self.traversers)
-                    if not type(self.traversers) is list:
+                    if not type(self.traversers) is list and not step.isterminal: # terminal steps could produce any type of output
                         self.traversers = list(self.traversers)
             except Exception as e:
                 raise GraphTraversalError(

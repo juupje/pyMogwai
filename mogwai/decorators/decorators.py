@@ -1,6 +1,3 @@
-import re
-__pattern = re.compile(r'(?<!^)(?=[A-Z])') #A simple CamelCase detector
-import sys
 from types import FunctionType
 from functools import wraps
 from typing import Callable, TYPE_CHECKING
@@ -41,3 +38,10 @@ def add_camel_case_methods(cls):
                 if attr_name != camel_case_name:
                     setattr(cls, camel_case_name, attr)
     return cls
+
+def traversal_step_doc(cls):
+    """Decorator to copy the docstring from the __init__ method of a class."""
+    def decorator(func):
+        func.__doc__ = cls.__init__.__doc__
+        return func
+    return decorator

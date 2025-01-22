@@ -14,3 +14,12 @@ class Cardinality(Enum):
 class Order(Enum):
     asc = 'asc'
     desc = 'desc'
+
+class IO(Enum):
+    reader = 'reader'
+    writer = 'writer'
+    json = 'json'
+    graphson = 'graphson'
+    graphson_wrapped = 'graphson_wrapped'
+    graphml = 'graphml'
+    rdf = 'rdf'

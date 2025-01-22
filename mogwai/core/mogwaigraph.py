@@ -220,7 +220,7 @@ class MogwaiGraph(networkx.DiGraph):
             return [n for n in self.nodes(date=True) if label in n[1]["labels"]]
         return self.nodes
 
-    def merge_subgraph(
+    def merge(
         self, other: "MogwaiGraph", srcId: int, targetId: int, edgeLabel: str
     ):
         mapping = {k: self.get_next_node_id() for k in other.nodes}

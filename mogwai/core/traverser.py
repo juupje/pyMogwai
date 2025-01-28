@@ -1,3 +1,8 @@
+"""
+Created on 2024
+
+@author: juupje
+"""
 import logging
 from copy import deepcopy
 from typing import Any
@@ -9,7 +14,7 @@ class BaseTraverser(ABC):
         self.track_path = track_path
         self.cache = {"__store__": {}}
         self.path = []
-    
+
     def to(self, other:'BaseTraverser') -> 'BaseTraverser':
         other.cache = deepcopy(self.cache)
         other.path = self.path.copy() #we assume that elements in the path don't change
@@ -102,7 +107,7 @@ class Traverser(BaseTraverser):
             node_id=self.node_id, other_node_id=self.target, track_path=self.track_path
         )
         t.cache = deepcopy(self.cache)
-        t.path = self.path.copy()
+        t.path = self.path.copy() if self.path else None
         return t
 
     def copy_to(self, node_id: str, other_node_id: str = None) -> "Traverser":
@@ -214,7 +219,7 @@ class Property(Value):
 
     def to_dict(self):
         return {self.key: self.val}
-    
+
     def copy(self):
         prop = Property(deepcopy(self.key), deepcopy(self.value))
         prop.cache = deepcopy(self.cache)

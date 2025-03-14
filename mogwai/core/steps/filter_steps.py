@@ -14,61 +14,47 @@ _NA = object() #represents missing values
 
 class Filter(FilterStep):
     def __init__(self, traversal:Traversal, filter:AnonymousTraversal):
-        super().__init__(traversal, flags=Filter.NEEDS_PATH if filter.needs_path else 0)
+        super().__init__(traversal)
         def _filter(t:'Traverser'):
             return next(iter(filter([t.copy()])), _NA) is not _NA
         self._filter = _filter
-        self.filter_traversal = filter
-
-    def build(self):
-        self.filter_traversal._build(self.traversal)
+        self.register_anon_traversal(filter)
 
     def print_query(self) -> str:
-        return f"{self.__class__.__name__}({self.filter_traversal.print_query()})"
+        return f"{self.__class__.__name__}({self.anon_traversals[0].print_query()})"
 
 class Not(FilterStep):
     def __init__(self, traversal:Traversal, filter:AnonymousTraversal):
-        super().__init__(traversal, flags=Filter.NEEDS_PATH if filter.needs_path else 0)
+        super().__init__(traversal)
         def _filter(t:'Traverser'):
             return next(iter(filter([t.copy()])), _NA) is _NA
         self._filter = _filter
-        self.filter_traversal = filter
-
-    def build(self):
-        self.filter_traversal._build(self.traversal)
+        self.register_anon_traversal(filter)
 
     def print_query(self) -> str:
-        return f"{self.__class__.__name__}({self.filter_traversal.print_query()})"
+        return f"{self.__class__.__name__}({self.anon_traversals[0].print_query()})"
 
 class And(FilterStep):
     def __init__(self, traversal:Traversal, optA:AnonymousTraversal,optB:AnonymousTraversal):
-        super().__init__(traversal, flags=Filter.NEEDS_PATH if optA.needs_path or optB.needs_path else 0)
+        super().__init__(traversal)
         def _filter(t:'Traverser'):
             return next(iter(optA([t.copy()])), _NA) is not _NA and next(iter(optB([t.copy()])), _NA) is not _NA
         self._filter = _filter
-        self.anon_travs = (optA, optB)
-
-    def build(self):
-        self.anon_travs[0]._build(self.traversal)
-        self.anon_travs[1]._build(self.traversal)
+        self.register_anon_traversal(optA, optB)
 
     def print_query(self) -> str:
-        return f"{self.__class__.__name__}({', '.join((t.print_query() for t in self.anon_travs))})"
+        return f"{self.__class__.__name__}({', '.join((t.print_query() for t in self.anon_traversals))})"
 
 class Or(FilterStep):
     def __init__(self, traversal:Traversal, optA:AnonymousTraversal,optB:AnonymousTraversal):
-        super().__init__(traversal, flags=Filter.NEEDS_PATH if optA.needs_path or optB.needs_path else 0)
+        super().__init__(traversal)
         def _filter(t:'Traverser'):
             return next(iter(optA([t.copy()])), _NA) is not _NA or next(iter(optB([t.copy()])), _NA) is not _NA
         self._filter = _filter
-        self.anon_travs = (optA, optB)
-
-    def build(self):
-        self.anon_travs[0]._build(self.traversal)
-        self.anon_travs[1]._build(self.traversal)
+        self.register_anon_traversal(optA, optB)
 
     def print_query(self) -> str:
-        return f"{self.__class__.__name__}({', '.join((t.print_query() for t in self.anon_travs))})"
+        return f"{self.__class__.__name__}({', '.join((t.print_query() for t in self.anon_traversals))})"
 
 class Has(FilterStep):
     def __init__(self, traversal:Traversal, key:str|List[str], value:Any=None, label:str|None=None):

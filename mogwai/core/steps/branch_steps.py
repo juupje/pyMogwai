@@ -1,12 +1,10 @@
-from .base_steps import BranchStep
+from .base_steps import BranchStep, MapStep
 from mogwai.core import Traversal, AnonymousTraversal
-from typing import Iterable
 from mogwai.core.traverser import Traverser, Value
-from uuid import uuid4
-from ..exceptions import GraphTraversalError, QueryError
+from mogwai.core.exceptions import GraphTraversalError, QueryError
 from mogwai.decorators import as_traversal_function, with_call_order
 from mogwai.utils.type_utils import TypeUtils as tu
-from typing import Tuple, Set
+from typing import Iterable, Dict, Any, Tuple, Set
 import logging
 logger = logging.getLogger("Mogwai")
 
@@ -14,21 +12,35 @@ _NA = object()
 
 class Repeat(BranchStep):
     def __init__(self, traversal:Traversal, do:AnonymousTraversal, times:int=None, until:AnonymousTraversal=None, until_do:bool=False):
-        super().__init__(traversal=traversal, flags=Repeat.NEEDS_PATH if ((until.needs_path if until is not None else False) or do.needs_path) else 0)
+        super().__init__(traversal=traversal)
         self.until_do = until_do
         self.do = do
+        self.register_anon_traversal(do)
         self.times = times
-        self.emit = None
+        self._emit = None #set by Traversal
         self.emit_before = False
-        self.until = until
-        self.uuid = uuid4().time_mid
+        self._until = None
+        if until is not None:
+            self.until = until
+    
+    @property
+    def until(self) -> AnonymousTraversal:
+        return self._until
+    
+    @until.setter
+    def until(self, until:AnonymousTraversal):
+        self._until = until
+        self.register_anon_traversal(until)
 
-    def build(self):
-        self.do._build(self.traversal)
-        if self.until:
-            self.until._build(self.traversal)
-        if self.emit and isinstance(self.emit, AnonymousTraversal):
-            self.emit.build(self.traversal)
+    @property
+    def emit(self) -> bool | AnonymousTraversal:
+        return self._emit
+
+    @emit.setter
+    def emit(self, emit:bool|AnonymousTraversal):
+        self._emit = emit
+        if isinstance(emit, AnonymousTraversal):
+            self.register_anon_traversal(emit)
 
     def __call__(self, traversers:Iterable[Traverser]) -> Iterable[Traverser]:
         if self.emit:
@@ -108,23 +120,32 @@ class Repeat(BranchStep):
                 s = f"{s}, {emitstr}"
         return f"{self.__class__.__name__}({s})"
 
-
-
 class Branch(BranchStep):
     def __init__(self, traversal:'Traversal',branchFunc:'AnonymousTraversal'):
-        super().__init__(traversal=traversal, flags=Branch.NEEDS_PATH if branchFunc.needs_path else 0)
+        super().__init__(traversal=traversal)
         self.branchFunc = branchFunc
-        self.options = {}
+        self.options:Dict[Any,'AnonymousTraversal'] = {}
         self.defaultStep=None
+        self.register_anon_traversal(branchFunc)
 
-    #TODO update flags when options are added
+    def add_option(self, key, option_trav:'AnonymousTraversal'):
+        if key not in self.options:
+            self.options[key] = option_trav
+            self.register_anon_traversal(option_trav)
+        else:
+            raise QueryError("Duplicate key " + str(key) + ", please use distinct keys")
 
+    def set_default(self, default_step:'AnonymousTraversal'):
+        if self.defaultStep is None:
+            self.defaultStep = default_step
+            self.register_anon_traversal(default_step)
+        else:
+            raise QueryError("Provided two default (None) options. This is not allowed")
+        
     def build(self):
-        self.branchFunc._build(self.traversal)
-        for k, v in self.options.items():
-            v._build(self.traversal)
-        if self.defaultStep:
-            self.defaultStep._build(self.traversal)
+        super().build()
+        if not isinstance(self.branchFunc.query_steps[-1], MapStep):
+            raise QueryError(f"The branch function (anonymous traversal) should end with a Map step (currently, it is {self.branchFunc.print_query()})")
 
     def __call__(self,traversers:Iterable[Traverser])->Iterable[Traverser]:
         valueTraverserPairs = []
@@ -159,35 +180,28 @@ class Branch(BranchStep):
 
 class Union(BranchStep):
     def __init__(self, traversal:Traversal, *traversals:AnonymousTraversal):
-        super().__init__(traversal=traversal, flags=Union.NEEDS_PATH if any(t.needs_path for t in traversals) else 0)
+        super().__init__(traversal=traversal)
         if len(traversals)<1:
             raise QueryError("Union requires at least 1 traversal.")
-        self.traversals = traversals
-
-    def build(self):
-        for t in self.traversals:
-            t._build(self.traversal)
+        self.register_anon_traversal(*traversals)
 
     def __call__(self, traversers:Iterable[Traverser]) -> Iterable[Traverser]:
         #Isn't generator comprehension beautiful?
-        return (t for trav in traversers for traversal in self.traversals for t in traversal([trav]))
+        return (t for trav in traversers for anon_traversal in self.anon_traversals for t in anon_traversal([trav]))
 
     def print_query(self) -> str:
-        return f"{self.__class__.__name__}(" + ", ".join((t.print_query() for t in self.traversals)) + ")"
+        return f"{self.__class__.__name__}(" + ", ".join((t.print_query() for t in self.anon_traversals)) + ")"
 
 class Local(BranchStep):
     def __init__(self, traversal:Traversal, localTrav:AnonymousTraversal):
-        super().__init__(traversal=traversal, flags=Local.NEEDS_PATH if localTrav.needs_path else 0)
-        self.localTrav = localTrav
-
-    def build(self):
-        return self.localTrav._build(self.traversal)
-
+        super().__init__(traversal=traversal)
+        self.register_anon_traversal(localTrav)
+    
     def __call__(self, traversers: Iterable[Traverser]) -> Iterable[Traverser]:
-        return (t1 for t in traversers for t1 in self.localTrav([t]))
+        return (t1 for t in traversers for t1 in self.anon_traversals[0]([t]))
 
     def print_query(self) -> str:
-        return f"{self.__class__.__name__}({self.localTrav.print_query()})"
+        return f"{self.__class__.__name__}({self.anon_traversals[0].print_query()})"
 
 @with_call_order
 @as_traversal_function

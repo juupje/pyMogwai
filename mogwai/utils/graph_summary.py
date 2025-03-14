@@ -46,7 +46,7 @@ class GraphSummary:
         text=header
         if self.fmt in self.section_formats:
             section_formats = self.section_formats.get(self.fmt)
-            if level<=len(section_formats):
+            if level<len(section_formats):
                 section_format=section_formats[level]
                 text= section_format.format_section_header(header)
         return text
@@ -100,7 +100,7 @@ class GraphSummary:
     def _get_nodes_summary(self, node_types, limit) -> str:
         output = []
         for node_type in node_types:
-            output.append(self._format_section_header(f"Node Type: {node_type}", level=2))
+            output.append(self.format_section_header(f"Node Type: {node_type}", level=2))
             output.append(self._get_nodes_of_type_summary(node_type, limit))
         return "\n".join(filter(None, output))
 

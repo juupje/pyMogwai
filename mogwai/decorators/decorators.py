@@ -10,10 +10,8 @@ def as_traversal_function(obj) -> Callable[..., 'AnonymousTraversal']:
         #obj is a function
         @wraps(obj)
         def wrapper(*args, **kwargs) -> AnonymousTraversal:
-            trav = AnonymousTraversal()
-            step = obj(*args, **kwargs)
-            step.traversal = trav
-            trav._add_step(step)
+            trav = AnonymousTraversal((obj, args, kwargs))
+            # we don't want to actually run the step yet. Anonymous traversal use deferred steps.
             return trav
         return wrapper
 

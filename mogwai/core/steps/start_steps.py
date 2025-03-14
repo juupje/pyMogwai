@@ -27,7 +27,7 @@ class V(Step):
                     if v in self.graph.nodes:
                         traversers.append(Traverser(v, track_path=self.traversal.needs_path))
                     else:
-                        raise GraphTraversalError(f"No node with id {v}.")
+                        raise GraphTraversalError(f"No node with id {v}. Keep in mind that all node ids are strings!")
         return traversers
 
 class AddV(SideEffectStep):

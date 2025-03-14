@@ -1,7 +1,7 @@
 """
 Created on 2024
 
-@author: juupje
+@author: Joep Geuskens
 """
 import logging
 from copy import deepcopy

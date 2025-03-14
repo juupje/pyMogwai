@@ -1,5 +1,5 @@
 from .base_steps import MapStep
-from typing import List, Any, Iterable, Generator, Callable
+from typing import List, Any, Iterable, Generator, Callable, Tuple
 from mogwai.core.traversal import Traversal, AnonymousTraversal
 from mogwai.core.traverser import Traverser, Value as TravValue, Property
 from mogwai.core.steps.enums import Scope, Order as EnumOrder
@@ -267,7 +267,7 @@ class Order(MapStep):
         return self._by
 
     @by.setter
-    def by(self, value):
+    def by(self, value:EnumOrder|str|List[str]|Tuple[str|List[str],EnumOrder]|AnonymousTraversal):
         if isinstance(value, tuple):
             if len(value)==2:
                 if isinstance(value[1], EnumOrder):
@@ -279,10 +279,10 @@ class Order(MapStep):
             self.order = value
         else:
             self._by = value
+        if isinstance(self._by, AnonymousTraversal):
+            self.register_anon_traversal(self._by)
         
     def build(self):
-        if isinstance(self.by, AnonymousTraversal):
-            self.by._build(self.traversal)
         if self.order is not None:
             if self.order == EnumOrder.asc:
                 self.asc = True
@@ -290,6 +290,7 @@ class Order(MapStep):
                 self.asc = False
             else:
                 raise QueryError(f"Unsupported order: {self.order}")
+        super().build() #this also takes care of building _by if it is an AnonymousTraversal
 
     def __call__(self, traversers: Iterable[Traverser] | Iterable[Any]) -> Iterable[Traverser] | Iterable[Any]:
         def extract_first_item(x):
@@ -530,7 +531,7 @@ class Aggregate(MapStep):
                 def _map(t:Traverser|TravValue):
                     if isinstance(t, TravValue) and isinstance(t.val, Iterable):
                         val = tu.ensure_is_list(t.val)
-                        return t.set_value(sum(t.val)/len(t.val))
+                        return t.set_value(sum(val)/len(val))
             self._map = _map
             return super().__call__(traversers)
 

@@ -1,5 +1,6 @@
 import logging
-from typing import TYPE_CHECKING, Any, Callable, Iterable, List, Set, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Iterable, List, Set, Tuple, Dict
+from functools import wraps
 
 from mogwai.config import DEFAULT_ITERATION_DEPTH, USE_MULTIPROCESSING
 from mogwai.core.exceptions import GraphTraversalError
@@ -14,15 +15,36 @@ from .steps.base_steps import Step
 
 logger = logging.getLogger("Mogwai")
 
+def step_method(not_anonymous=False):
+    def decorator(func):
+        """Decorator to mark methods as step methods while preserving type hints."""
+        func._anonymous = not(not_anonymous)
+        func._is_step_method = True
+        @wraps(func)  # Preserves metadata and type hinting
+        def wrapper(*args, **kwargs):
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator
 
 @add_camel_case_methods
 class Traversal:
     """
     see https://tinkerpop.apache.org/javadocs/3.7.3/core/org/apache/tinkerpop/gremlin/process/traversal/Traversal.html
 
+    This class represents the base class for all traversals. Each traversal is a directed walk over a graph, executed
+    using an iterator-based traversal.
+    You shouldn't create instances of this class directly, but instead use a Traversal Source, (e.g. the `MogwaiGraphTraversalSource`)
+    to create a new traversal.
+    Then, you can chain traversal steps to create a query that will be executed when you call the `run()` method.
+    """
+    
+    #the following comment is misleading as it does not apply to this specific Traversal class
+    """
+    see https://tinkerpop.apache.org/javadocs/3.7.3/core/org/apache/tinkerpop/gremlin/process/traversal/Traversal.html
+
     A Traversal represents a directed walk over a Graph.
-    This is the base sterface for all traversal's,
-    where each extending sterface is seen as a domain
+    This is the base interface for all traversals,
+    where each extending interface is seen as a domain
     specific language. For example, GraphTraversal
     is a domain specific language for traversing a graph
     using "graph concepts" (e.g. vertices, edges).
@@ -36,6 +58,7 @@ class Traversal:
     OLAP traversals leverage GraphComputer and are executed
     between multiple execution environments (e.g.JVMs) (and/or cores).
     """
+    __steps__ = set()
 
     def __init__(
         self,
@@ -61,6 +84,11 @@ class Traversal:
         self.optimize = optimize
         self.max_iteration_depth = DEFAULT_ITERATION_DEPTH
 
+    def number_of_steps(self, recursive:bool=False) -> int:
+        if recursive:
+            return sum([step.number_of_steps(recursive=True) for step in self.query_steps])
+        return len(self.query_steps)
+
     def _add_step(self, step: "Step"):
         if self.terminated:
             raise QueryError("Cannot add steps to a terminated traversal.")
@@ -69,12 +97,13 @@ class Traversal:
             self.terminated = True
 
     ## ===== FILTER STEPS ======
+    @step_method()
     def filter_(self, condition: "AnonymousTraversal") -> "Traversal":
         from .steps.filter_steps import Filter
-
         self._add_step(Filter(self, condition))
         return self
 
+    @step_method()
     def has(self, *args) -> "Traversal":
         """
         Filter traversers based on whether they have the given properties.
@@ -98,30 +127,35 @@ class Traversal:
             raise QueryError("Invalid number of arguments for `has`")
         return self
 
+    @step_method()
     def has_not(self, key: str):
         from .steps.filter_steps import HasNot
 
         self._add_step(HasNot(self, key))
         return self
 
+    @step_method()
     def has_key(self, *keys: str):
         from .steps.filter_steps import HasKey
 
         self._add_step(HasKey(self, *keys))
         return self
 
+    @step_method()
     def has_value(self, *values: Any) -> "Traversal":
         from .steps.filter_steps import HasValue
 
         self._add_step(HasValue(self, *values))
         return self
 
+    @step_method()
     def has_id(self, *ids: str | tuple) -> "Traversal":
         from .steps.filter_steps import HasId
 
         self._add_step(HasId(self, *ids))
         return self
 
+    @step_method()
     def has_name(self, *name: str) -> "Traversal":
         if len(name) == 0:
             raise QueryError("No name provided for `has_name`")
@@ -133,6 +167,7 @@ class Traversal:
             self._add_step(HasWithin(self, "name", name))
             return self
 
+    @step_method()
     def has_label(self, label: str | Set[str]) -> "Traversal":
         if isinstance(label, set):
             from .steps.filter_steps import ContainsAll
@@ -144,12 +179,14 @@ class Traversal:
             self._add_step(Contains(self, "labels", label))
         return self
 
+    @step_method()
     def is_(self, condition: Any) -> "Traversal":
         from .steps.filter_steps import Is
 
         self._add_step(Is(self, condition))
         return self
 
+    @step_method()
     def contains(self, key: str | List[str], value: Any) -> "Traversal":
         if isinstance(value, list):
             from .steps.filter_steps import ContainsAll
@@ -161,54 +198,63 @@ class Traversal:
             self._add_step(Contains(self, key, value))
         return self
 
+    @step_method()
     def within(self, key: str | List[str], options: List[Any]) -> "Traversal":
         from .steps.filter_steps import Within
 
         self._add_step(Within(self, key, options))
         return self
 
+    @step_method()
     def simple_path(self, by: str | List[str] = None) -> "Traversal":
         from .steps.filter_steps import SimplePath
 
         self._add_step(SimplePath(self, by=by))
         return self
 
+    @step_method()
     def limit(self, n: int) -> "Traversal":
         from .steps.filter_steps import Range
 
         self._add_step(Range(self, 0, n))
         return self
 
+    @step_method()
     def range(self, start: int, end: int) -> "Traversal":
         from .steps.filter_steps import Range
 
         self._add_step(Range(self, start, end))
         return self
 
+    @step_method()
     def skip(self, n: int) -> "Traversal":
         from .steps.filter_steps import Range
 
         self._add_step(Range(self, n, -1))
         return self
 
+    @step_method()
     def dedup(self, by: str | List[str] = None) -> "Traversal":
         from .steps.filter_steps import Dedup
 
         self._add_step(Dedup(self, by=by))
         return self
 
+    @step_method()
     def not_(self, condition: "AnonymousTraversal") -> "Traversal":
         from .steps.filter_steps import Not
 
         self._add_step(Not(self, condition))
         return self
 
+    @step_method()
     def and_(self, A: "AnonymousTraversal", B: "AnonymousTraversal") -> "Traversal":
         from .steps.filter_steps import And
 
         self._add_step(And(self, A, B))
         return self
 
+    @step_method()
     def or_(self, A: "AnonymousTraversal", B: "AnonymousTraversal") -> "Traversal":
         from .steps.filter_steps import Or
 
@@ -216,9 +262,11 @@ class Traversal:
         return self
 
     ## ===== MAP STEPS ======
+    @step_method()
     def identity(self) -> "Traversal":  # required for math reasons
         return self
 
+    @step_method()
     def id_(self) -> 'Traversal':
         from .steps.map_steps import Id
         self._add_step(Id(self))
@@ -227,36 +275,43 @@ class Traversal:
     # Important: `value` extract values from *Property's*
     # `values` extracts values from *elements*!
     # So, .properties(key).value() is the same as .values(key)
+    @step_method()
     def value(self) -> "Traversal":
         from .steps.map_steps import Value
 
         self._add_step(Value(self))
         return self
 
+    @step_method()
     def key(self) -> "Traversal":
         from .steps.map_steps import Key
 
         self._add_step(Key(self))
         return self
 
+    @step_method()
     def values(self, *keys: str | List[str]) -> "Traversal":
         from .steps.map_steps import Values
 
         self._add_step(Values(self, *keys))
         return self
 
+    @step_method()
     def name(self) -> "Traversal":
         return self.values("name")
 
+    @step_method()
     def label(self) -> "Traversal":
         return self.values("labels")
 
+    @step_method()
     def properties(self, *keys: str | List[str]) -> "Traversal":
         from .steps.map_steps import Properties
 
         self._add_step(Properties(self, *keys))
         return self
 
+    @step_method()
     def select(self, *args: str, by: str = None) -> "Traversal":
         from .steps.map_steps import Select
 
@@ -265,6 +320,7 @@ class Traversal:
         )
         return self
 
+    @step_method()
     def order(
         self,
         by: str | List[str] | EnumOrder | "AnonymousTraversal" = None,
@@ -279,48 +335,56 @@ class Traversal:
         else:
             self._add_step(Order(self, by, asc=asc, **kwargs))
         return self
-    
+
+    @step_method()
     def fold(self, seed:Any=None, foldfunc:Callable[[Any,Any],Any]=None):
         from .steps.map_steps import Fold
         self._add_step(Fold(self, seed, foldfunc))
         return self
 
+    @step_method()
     def count(self, scope: Scope = Scope.global_) -> "Traversal":
         from .steps.map_steps import Count
 
         self._add_step(Count(self, scope))
         return self
 
+    @step_method()
     def path(self, by: str | List[str] = None) -> "Traversal":
         from .steps.map_steps import Path
 
         self._add_step(Path(self, by=by))
         return self
 
+    @step_method()
     def max_(self, scope: Scope = Scope.global_) -> "Traversal":
         from .steps.map_steps import Max
 
         self._add_step(Max(self, scope))
         return self
 
+    @step_method()
     def min_(self, scope: Scope = Scope.global_) -> "Traversal":
         from .steps.map_steps import Min
 
         self._add_step(Min(self, scope))
         return self
 
+    @step_method()
     def sum_(self, scope: Scope = Scope.global_) -> "Traversal":
         from .steps.map_steps import Aggregate
 
         self._add_step(Aggregate(self, "sum", scope))
         return self
 
+    @step_method()
     def mean(self, scope: Scope = Scope.global_) -> "Traversal":
         from .steps.map_steps import Aggregate
 
         self._add_step(Aggregate(self, "mean", scope))
         return self
 
+    @step_method()
     def element_map(self, *keys: str) -> "Traversal":
         from .steps.map_steps import ElementMap
 
@@ -332,54 +396,63 @@ class Traversal:
         return self
 
     ## ===== FLATMAP STEPS ======
+    @step_method()
     def out(self, direction: str = None) -> "Traversal":
         from .steps.flatmap_steps import Out
 
         self._add_step(Out(self, direction))
         return self
 
+    @step_method()
     def outE(self, direction: str = None) -> "Traversal":
         from .steps.flatmap_steps import OutE
 
         self._add_step(OutE(self, direction))
         return self
 
+    @step_method()
     def outV(self) -> "Traversal":
         from .steps.flatmap_steps import OutV
 
         self._add_step(OutV(self))
         return self
 
+    @step_method()
     def in_(self, direction: str = None) -> "Traversal":
         from .steps.flatmap_steps import In
 
         self._add_step(In(self, direction))
         return self
 
+    @step_method()
     def inE(self, direction: str = None) -> "Traversal":
         from .steps.flatmap_steps import InE
 
         self._add_step(InE(self, direction))
         return self
 
+    @step_method()
     def inV(self) -> "Traversal":
         from .steps.flatmap_steps import InV
 
         self._add_step(InV(self))
         return self
 
+    @step_method()
     def both(self, direction: str = None) -> "Traversal":
         from .steps.flatmap_steps import Both
 
         self._add_step(Both(self, direction))
         return self
 
+    @step_method()
     def bothE(self, direction: str = None) -> "Traversal":
         from .steps.flatmap_steps import BothE
 
         self._add_step(BothE(self, direction))
         return self
 
+    @step_method()
     def bothV(self) -> "Traversal":
         from .steps.flatmap_steps import BothV
 
@@ -387,6 +460,7 @@ class Traversal:
         return self
 
     ## ===== BRANCH STEPS =====
+    @step_method()
     @with_call_order
     def repeat(
         self,
@@ -423,23 +497,22 @@ class Traversal:
         self._add_step(step)
         return self
 
+    @step_method()
     def local(self, localTrav: "AnonymousTraversal") -> "Traversal":
         from .steps.branch_steps import Local
 
         self._add_step(Local(self, localTrav))
         return self
 
+    @step_method()
     def branch(self, branchFunc: "AnonymousTraversal") -> "Traversal":
         from .steps.branch_steps import Branch
-        from .steps.map_steps import MapStep
-
-        if len(branchFunc.query_steps) == 0 or not isinstance(
-            branchFunc.query_steps[-1], MapStep
-        ):
-            raise TypeError("Branch is only allowed to be given MapSteps")
+        if branchFunc.number_of_steps() == 0:
+            raise QueryError("No steps provided for branch function")
         self._add_step(Branch(self, branchFunc))
         return self
 
+    @step_method()
     def union(self, *traversals: "AnonymousTraversal") -> "Traversal":
         from .steps.branch_steps import Union
 
@@ -447,6 +520,7 @@ class Traversal:
         return self
 
     ## ===== SIDE EFFECT STEPS ======
+    @step_method()
     def side_effect(
         self, side_effect: "AnonymousTraversal|Callable[[Traverser], None]"
     ) -> "Traversal":
@@ -455,6 +529,7 @@ class Traversal:
         self._add_step(SideEffectStep(self, side_effect))
         return self
 
+    @step_method()
     def property(self, *args) -> 'Traversal':
         from .steps.base_steps import SideEffectStep
         if len(args)==2:
@@ -485,6 +560,7 @@ class Traversal:
         return self
 
      ## ===== IO =====
+    @step_method(not_anonymous=True)
     def io(self, file_path: str, read: bool = None, write: bool = None) -> "Traversal":
         from .steps.io_step import IO
         if read is not None and write is not None:
@@ -494,31 +570,21 @@ class Traversal:
         return self
 
     ## ===== MODULATION STEPS ======
-    def option(self, branchKey, OptionStep: "AnonymousTraversal") -> "Traversal":
+    @step_method()
+    def option(self, branchKey, option_trav: "AnonymousTraversal") -> "Traversal":
         from .steps.branch_steps import Branch
 
         branchStep = self.query_steps[len(self.query_steps) - 1]
         if type(branchStep) is Branch:
-            branchStep.flags |= Step.NEEDS_PATH if OptionStep.needs_path else 0
             if branchKey is not None:
-                if branchKey not in branchStep.options:
-                    branchStep.options[branchKey] = OptionStep
-                    return self
-                else:
-                    raise QueryError(
-                        "Duplicate key " + str(branchKey) + ", please use distinct keys"
-                    )
+                branchStep.add_option(branchKey, option_trav)
             else:
-                if branchStep.defaultStep is None:
-                    branchStep.defaultStep = OptionStep
-                    return self
-                else:
-                    raise QueryError(
-                        "Provided two default (None) options. This is not allowed"
-                    )
+                branchStep.set_default(option_trav)
+            return self
         else:
-            raise QueryError("Options can only be used after Branch()")
+            raise QueryError("Option can only be used after Branch step")
 
+    @step_method()
     def until(self, cond: "AnonymousTraversal"):
         from .steps.branch_steps import Repeat
 
@@ -527,8 +593,6 @@ class Traversal:
             if prevstep.until is None and prevstep.times is None:
                 prevstep.until = cond
                 prevstep.until_do = False
-                if cond.needs_path:
-                    prevstep.flags |= Repeat.NEEDS_PATH
             else:
                 raise QueryError(
                     "Provided `until` to repeat when `times` or `until` was already set."
@@ -539,6 +603,7 @@ class Traversal:
             self._add_step(Temp(self, type="until", cond=cond))
         return self
 
+    @step_method()
     def times(self, reps: int):
         from .steps.branch_steps import Repeat
 
@@ -556,6 +621,7 @@ class Traversal:
             )
         return self
 
+    @step_method()
     def emit(self, filter: "AnonymousTraversal|None" = None):
         from .steps.branch_steps import Repeat
 
@@ -564,8 +630,6 @@ class Traversal:
             if prevstep.emit is None:
                 prevstep.emit = filter or True
                 prevstep.emit_before = False
-                if filter and filter.needs_path:
-                    prevstep.flags |= Repeat.NEEDS_PATH
             else:
                 raise QueryError(
                     "Provided `emit` to repeat when `emit` was already set."
@@ -576,12 +640,14 @@ class Traversal:
             self._add_step(Temp(self, type="emit", filter=filter or True))
         return self
 
+    @step_method()
     def as_(self, name: str) -> "Traversal":
         from .steps.modulation_steps import As
 
         self._add_step(As(self, name))
         return self
 
+    @step_method()
     def by(self, key: str | List[str] | "AnonymousTraversal", *args) -> "Traversal":
         prev_step = self.query_steps[-1]
         if prev_step.supports_by:
@@ -610,6 +676,7 @@ class Traversal:
             )
         return self
 
+    @step_method()
     def from_(self, src: str) -> "Traversal":
         prev_step = self.query_steps[-1]
         if prev_step.supports_fromto:
@@ -627,6 +694,7 @@ class Traversal:
             )
         return self
 
+    @step_method()
     def to_(self, dest: str) -> "Traversal":
         prev_step = self.query_steps[-1]
         if prev_step.supports_fromto:
@@ -644,6 +712,7 @@ class Traversal:
             )
         return self
 
+    @step_method()
     def with_(self, *args) -> "Traversal":
         prev_step = self.query_steps[-1]
         if prev_step.flags & Step.SUPPORTS_WITH:
@@ -659,6 +728,7 @@ class Traversal:
             )
         return self
 
+    @step_method(not_anonymous=True)
     def read(self) ->  "Traversal":
         from .steps.io_step import IO
         prev_step = self.query_steps[-1]
@@ -668,6 +738,7 @@ class Traversal:
             raise QueryError(f"the read() step can only be used after an IO step.")
         return self
     
+    @step_method(not_anonymous=True)
     def write(self) ->  "Traversal":
         from .steps.io_step import IO
         prev_step = self.query_steps[-1]
@@ -678,6 +749,7 @@ class Traversal:
         return self
 
     ## ===== TERMINAL STEPS ======
+    @step_method(not_anonymous=True)
     def to_list(
         self, by: List[str] | str = None, include_data: bool = False
     ) -> "Traversal":
@@ -687,6 +759,7 @@ class Traversal:
         self._add_step(ToList(self, by=by, include_data=include_data))
         return self
 
+    @step_method(not_anonymous=True)
     def as_path(self, by: List[str] | str = None) -> "Traversal":
         # terminal step
         from .steps.terminal_steps import AsPath
@@ -694,17 +767,20 @@ class Traversal:
         self._add_step(AsPath(self, by=by))
         return self
 
+    @step_method(not_anonymous=True)
     def has_next(self) -> "Traversal":
         from .steps.terminal_steps import HasNext
 
         self._add_step(HasNext(self))
         return self
-
+    
+    @step_method(not_anonymous=True)
     def next(self, n:int=1) -> 'Traversal':
         from .steps.terminal_steps import Next
         self._add_step(Next(self, amount=n))
         return self
 
+    @step_method(not_anonymous=True)
     def iter(
         self, by: str | List[str] = None, include_data: bool = False
     ) -> "Traversal":
@@ -713,6 +789,7 @@ class Traversal:
         self._add_step(AsGenerator(self, by=by, include_data=include_data))
         return self
 
+    @step_method(not_anonymous=True)
     def iterate(self) -> "Traversal":
         from .steps.terminal_steps import Iterate
 
@@ -797,16 +874,33 @@ class Traversal:
 
 class AnonymousTraversal(Traversal):
     """
-    specialized Traversal
+    This class implements Anonymous traversals. These are traversals that are not directly bound to a source.
+    They are used as subqueries in other traversals, and are not meant to be run on their own.
+    As input, they receive a set of traversers from the parent traversal, and they return a set of traversers to the parent traversal.
+    
+    Importantly, some steps require information from the source traversal (like the graph's configuration) to be able to construct themselves.
+    Therefore, we cannot construct an anonymous traversal at the time it is created, but we need to build it when it is added to a parent traversal.
+    This inheritance structure is a bit of a hack to allow for this behavior and will inherently cause some issues with type hinting.
+    
+    This behavior is implemented in the following way.
+    1. When an anonymous traversal is created, it is empty, and it has a list of step templates.
+    2. When a step method is retrieved from the anonymous traversal, this `__getattribute__` call to obtain the method
+        is intercepted. Instead of returning the actual step method, which would run immediately and construct the step,
+        a deferred step method is returned. This deferred step method stores the step method and its arguments in the step templates.
+    3. When the anonymous traversal is build by a parent traversal, the parent traversal constructs the anonymous traversal.
+        In the anonymous traversal's build method, it constructs all the steps from the step templates as if the step methods are only called at this point.
+    4. The anonymous traversal is now ready to be run.
     """
-
-    def __init__(self, start: "Step" = None):
-        self.query_steps = [start] if start else []
+    def __init__(self, initial_deferred_step:Tuple[Callable[..., Step], Tuple, Dict]):
+        self.query_steps:list[Step] = None #we want to make sure that an error is raised if this is accessed before the anonymous traversal is build.
         self.graph = None
         self.terminated = False
         self._needs_path = False
+        self._initial_step = initial_deferred_step
+        self._step_templates = []
 
     # we need this since anonymous traversals need to check this before they're run.
+    # this is a very tricky part, since `query_steps` is undefined until the anonymous traversal is build.
     @property
     def needs_path(self):
         return self._needs_path or any((s.needs_path for s in self.query_steps))
@@ -815,8 +909,16 @@ class AnonymousTraversal(Traversal):
     def needs_path(self, value):
         self._needs_path = value
 
+    def number_of_steps(self, recursive = False):
+        if self.query_steps is None:
+            if recursive:
+                logger.warning("Anonymous traversal has not been built yet, cannot count steps.")
+            return 1+len(self._step_templates)
+        else:
+            return super().number_of_steps(recursive)
+
     def run(self):
-        raise ValueError("Cannot run anonymous traversals")
+        raise ValueError("Cannot run anonymous traversals")   
 
     def _build(self, traversal: Traversal):
         # first, set the necessary fields
@@ -824,8 +926,18 @@ class AnonymousTraversal(Traversal):
         self.eager = traversal.eager
         self.use_mp = traversal.use_mp
         self.verify_query = traversal.verify_query
-        self.needs_path = any([s.needs_path for s in self.query_steps])
         self.optimize = traversal.optimize
+        # then, build the steps
+        self.query_steps = []
+        init_step_func, init_args, init_kwargs = self._initial_step
+        init_step = init_step_func(*init_args, **init_kwargs)
+        init_step.traversal = self
+        self.query_steps.append(init_step)
+        for step, args, kwargs in self._step_templates:
+            step(*args, **kwargs) #this is the step function
+        for step in self.query_steps:
+            step.build()
+        self.needs_path = any([s.needs_path for s in self.query_steps])
         if traversal.optimize:
             self._optimize_query()
         if self.verify_query:
@@ -842,7 +954,7 @@ class AnonymousTraversal(Traversal):
         if self.eager:
             try:
                 for step in self.query_steps:
-                    logger.debug("Running step:" + str(step))
+                    logger.debug("Running step in anonymous traversal:" + str(step))
                     self.traversers = step(self.traversers)
                     if not type(self.traversers) is list:
                         self.traversers = list(self.traversers)
@@ -856,8 +968,39 @@ class AnonymousTraversal(Traversal):
                 self.traversers = step(self.traversers)
             # TODO: Try to do some fancy error handling
         return self.traversers
-
-
+    
+    def __getattribute__(self, name):
+        attr = super().__getattribute__(name)
+        if callable(attr) and getattr(attr, "_is_step_method", False):
+            if getattr(attr, "_anonymous", True):
+                logger.debug("Returning lambda for anonymous step " + attr.__name__)
+                def deferred_step(*args, **kwargs):
+                    self._step_templates.append((attr, args, kwargs))
+                    return self
+                return deferred_step
+            else:
+                raise QueryError(f"Step {name} is not allowed in anonymous traversals")
+        return attr
+    
+    def print_query(self):
+        def format_args(step, args, kwargs):
+            step_str = f"{step.__name__}"
+            args_str, kwarg_str = None, None
+            if len(args) > 0:
+                args_str = ", ".join(str(x) for x in args)
+            if len(kwargs) > 0:
+                kwarg_str = ", ".join(f"{key}={val}" for key, val in kwargs.items())
+            if args_str and kwarg_str:
+                step_str += f"({args_str}, {kwarg_str})"
+            elif args_str:
+                step_str += f"({args_str})"
+            elif kwarg_str:
+                step_str += f"({kwarg_str})"
+            return step_str
+        texts = [format_args(*self._initial_step)]
+        texts += [format_args(step, args, kwargs) for step, args, kwargs in self._step_templates]
+        return " -> ".join(texts)
+        
 class MogwaiGraphTraversalSource:
     """
     see https://tinkerpop.apache.org/javadocs/current/full/org/apache/tinkerpop/gremlin/process/traversal/dsl/graph/GraphTraversalSource.html

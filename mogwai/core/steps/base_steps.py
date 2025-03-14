@@ -1,9 +1,8 @@
-from ..traverser import Traverser
-from typing import Any, Callable, Iterable
+from mogwai.core.traverser import Traverser
 from abc import abstractmethod
-from ..exceptions import GraphTraversalError, QueryError
-import typing
-if typing.TYPE_CHECKING:
+from mogwai.core.exceptions import GraphTraversalError
+from typing import List, TYPE_CHECKING, Any, Callable, Iterable
+if TYPE_CHECKING:
     from mogwai.core.traversal import Traversal, AnonymousTraversal
 from mogwai.utils.type_utils import TypeUtils as tu
 
@@ -21,6 +20,13 @@ class Step:
         self.traversal = traversal
         self.flags = flags
         self._by = None
+        self._is_built = False
+        self.anon_traversals:List['AnonymousTraversal']| None = None
+
+    def register_anon_traversal(self, *anon_traversals:'AnonymousTraversal'):
+        if self.anon_traversals is None:
+            self.anon_traversals = []
+        self.anon_traversals.extend(anon_traversals)
 
     @property
     def isstart(self):
@@ -30,7 +36,12 @@ class Step:
         return (self.flags & Step.ISTERMINAL)!=0
     @property
     def needs_path(self):
-        return (self.flags & Step.NEEDS_PATH)!=0
+        if self.anon_traversals:
+            if not self._is_built:
+                raise GraphTraversalError("Can't check if step needs path before it is built")
+            return any(at.needs_path for at in self.anon_traversals) or (self.flags & Step.NEEDS_PATH)!=0
+        else:
+            return (self.flags & Step.NEEDS_PATH)!=0
     @property
     def supports_by(self):
         return (self.flags & Step.SUPPORTS_BY)!=0
@@ -50,7 +61,15 @@ class Step:
 
     @abstractmethod
     def build(self):
-        pass
+        if self.anon_traversals:
+            for anon_traversal in self.anon_traversals:
+                anon_traversal._build(self.traversal)
+        self._is_built = True
+
+    def number_of_steps(self) -> int:
+        if self.anon_traversals:
+            return 1 + sum(at.number_of_steps() for at in self.anon_traversals)
+        return 1
 
     def print_query(self) -> str: return self.__class__.__name__
 

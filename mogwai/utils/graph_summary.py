@@ -25,12 +25,11 @@ class GraphSummary:
         fmt: str = "github",
         section_formats: Optional[Dict[str, List[SectionFormat]]] = None,
     ):
-        """ constructor å"""
+        """ constructor"""
         self.graph = graph
         self.fmt = fmt
         self.section_formats = section_formats or {
-            "github": [
-                SectionFormat(1, "# {header}")],
+            "github": [SectionFormat(1, "# {header}")],
             "mediawiki": [SectionFormat(1, "= {header} =")],
             "latex": [SectionFormat(1, "\\section{{{header}}}")],
         }
@@ -44,12 +43,18 @@ class GraphSummary:
     def format_section_header(self, header: str, level: int = 1) -> str:
         """Format the section header using the format string for the current output format."""
         text=header
-        if self.fmt in self.section_formats:
-            section_formats = self.section_formats.get(self.fmt)
-            if level<len(section_formats):
-                section_format=section_formats[level]
-                text= section_format.format_section_header(header)
-        return text
+        section_formats = self.section_formats.get(self.fmt, None)
+        print(section_formats, "level", level)
+        if section_formats is not None:
+            # Find the format string for the requested level
+            for section_format in section_formats:
+                print(section_format.level, level, section_format.level == level)
+                if section_format.level == level:
+                    text = section_format.format_section_header(header)
+                    return text
+            raise ValueError("No format string found for the requested level." + (str(level)) + " in " + str(section_formats))
+        else:
+            raise ValueError("No format string found for the requested format.")
 
 
     def dump(self, node_types=None, limit: int = 10) -> str:

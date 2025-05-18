@@ -18,7 +18,7 @@ class Version(object):
     name = "pymogwai"
     version = mogwai.__version__
     date = "2024-08-15"
-    updated = "2024-11-14"
+    updated = "2025-05-18"
     description = "python native gremlin implementation"
 
     authors = "Wolfgang Fahl"
@@ -27,7 +27,7 @@ class Version(object):
     doc_url = "https://cr.bitplan.com/index.php/pyMogwai"
     cm_url = "https://github.com/juupje/pyMogwai"
 
-    license = f"""Copyright 2024 contributors. All rights reserved.
+    license = f"""Copyright 2024-2025 contributors. All rights reserved.
 
   Licensed under the Apache License 2.0
   http://www.apache.org/licenses/LICENSE-2.0

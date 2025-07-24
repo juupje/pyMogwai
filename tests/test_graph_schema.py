@@ -212,7 +212,7 @@ class TestGraphSchema(BaseTest):
         schema.save_to_yaml_file(temp_file)
 
         # Reload the schema from the saved file
-        reloaded_schema = GraphSchema.load_from_yaml_file(temp_file)
+        reloaded_schema = GraphSchema.load_from_yaml_file(temp_file) #@UndefinedVariable
         self.assertIsNotNone(reloaded_schema)
 
         # Assert that the reloaded node_id_type is str

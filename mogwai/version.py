@@ -18,7 +18,7 @@ class Version(object):
     name = "pymogwai"
     version = mogwai.__version__
     date = "2024-08-15"
-    updated = "2025-05-18"
+    updated = "2025-07-24"
     description = "python native gremlin implementation"
 
     authors = "Wolfgang Fahl"

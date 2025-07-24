@@ -29,9 +29,18 @@ class GraphSummary:
         self.graph = graph
         self.fmt = fmt
         self.section_formats = section_formats or {
-            "github": [SectionFormat(1, "# {header}")],
-            "mediawiki": [SectionFormat(1, "= {header} =")],
-            "latex": [SectionFormat(1, "\\section{{{header}}}")],
+            "github": [
+                SectionFormat(1, "# {header}"),
+                SectionFormat(2, "## {header}")
+            ],
+            "mediawiki": [
+                SectionFormat(1, "= {header} ="),
+                SectionFormat(2, "== {header} ==")
+            ],
+            "latex": [
+                SectionFormat(1, "\\section{{{header}}}"),
+                SectionFormat(2, "\\subsection{{{header}}}")
+            ],
         }
 
 

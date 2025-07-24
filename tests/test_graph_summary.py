@@ -11,9 +11,6 @@ from mogwai.utils.graph_summary import GraphSummary
 from tests.basetest import BaseTest
 
 
-@unittest.skip(
-    "The correct behavior of this test is not yet implemented in the current version of the library."
-)
 class TestGraphSummary(BaseTest):
     """Test the graph summary functionality."""
 

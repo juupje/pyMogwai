@@ -56,9 +56,11 @@ converters = [
   # https://github.com/py-pdf/pypdf
   'pypdf>=4.2.0',
   # https://github.com/WolfgangFahl/pySemanticSlides
-  'pysemanticslides>=0.3.1',
+  'pysemanticslides>=0.3.2',
   # pandas 2.3.1
-  'pandas>=2.3.1'
+  'pandas>=2.3.1',
+  # https://pypi.org/project/openpyxl/
+  'openpyxl>=3.1.5'
 ]
 draw = [
   # https://github.com/pydot/pydot

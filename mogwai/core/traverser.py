@@ -3,11 +3,14 @@ Created on 2024
 
 @author: Joep Geuskens
 """
+
 import logging
+from abc import ABC, abstractmethod
 from copy import deepcopy
 from typing import Any
-from abc import ABC, abstractmethod
+
 logger = logging.getLogger("Mogwai")
+
 
 class BaseTraverser(ABC):
     def __init__(self, track_path: bool = False):
@@ -15,14 +18,17 @@ class BaseTraverser(ABC):
         self.cache = {"__store__": {}}
         self.path = []
 
-    def to(self, other:'BaseTraverser') -> 'BaseTraverser':
+    def to(self, other: "BaseTraverser") -> "BaseTraverser":
         other.cache = deepcopy(self.cache)
-        other.path = self.path.copy() #we assume that elements in the path don't change
+        other.path = (
+            self.path.copy()
+        )  # we assume that elements in the path don't change
         return other
 
     @abstractmethod
-    def copy(self) -> 'BaseTraverser':
+    def copy(self) -> "BaseTraverser":
         pass
+
 
 class Traverser(BaseTraverser):
     """
@@ -137,7 +143,7 @@ class Traverser(BaseTraverser):
 
 
 class Value(BaseTraverser):
-    def __init__(self, val, dtype=None, track_path:bool=False):
+    def __init__(self, val, dtype=None, track_path: bool = False):
         super().__init__(track_path=track_path)
         if dtype:
             self.val = dtype(val)
@@ -186,6 +192,7 @@ class Value(BaseTraverser):
 
     def __str__(self):
         return f"{self.__class__.__qualname__}[value={self.val}]"
+
 
 class Property(Value):
     def __init__(self, key: str, val: Any, dtype=None, track_path=False):

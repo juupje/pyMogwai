@@ -9,9 +9,10 @@ import platform
 
 import lodstorage.sample2
 from rdflib import Graph
-from mogwai.examples.schema import MogwaiExampleSchema
+
 from mogwai.core import MogwaiGraph
 from mogwai.core.traversal import MogwaiGraphTraversalSource
+from mogwai.examples.schema import MogwaiExampleSchema
 from mogwai.schema.graph_schema import GraphSchema, NodeTypeConfig
 from mogwai.schema.nx_to_rdf import NetworkXToRDFConverter
 from tests.basetest import BaseTest
@@ -120,7 +121,7 @@ class TestGraphSchema(BaseTest):
         """
         test loading the schema
         """
-        yaml_path=MogwaiExampleSchema.get_yaml_path()
+        yaml_path = MogwaiExampleSchema.get_yaml_path()
         schema = GraphSchema.load(yaml_path)
         self.assertIsNotNone(schema)
         self.assertTrue(len(schema.node_type_configs) >= 1)

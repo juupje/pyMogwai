@@ -1,8 +1,9 @@
 import unittest
 
-from mogwai.core.traversal import MogwaiGraphTraversalSource
 from mogwai.core.steps.enums import Order
+from mogwai.core.traversal import MogwaiGraphTraversalSource
 from tests.basetest import BaseTest
+
 
 class TestLiveDemo(BaseTest):
     def setUp(self):
@@ -91,6 +92,7 @@ class TestLiveDemo(BaseTest):
 
     def test_from_nearby_airports(self):
         from mogwai.core.steps.statics import select
+
         query = (
             self.g.V()
             .has_label("airport")

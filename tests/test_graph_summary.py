@@ -1,14 +1,19 @@
-'''
+"""
 Created on 2024-11-24
 
 @author: wf
-'''
-from tests.basetest import BaseTest
-from mogwai.core import MogwaiGraph
-from mogwai.utils.graph_summary import GraphSummary
+"""
+
 import unittest
 
-@unittest.skip("The correct behavior of this test is not yet implemented in the current version of the library.")
+from mogwai.core import MogwaiGraph
+from mogwai.utils.graph_summary import GraphSummary
+from tests.basetest import BaseTest
+
+
+@unittest.skip(
+    "The correct behavior of this test is not yet implemented in the current version of the library."
+)
 class TestGraphSummary(BaseTest):
     """Test the graph summary functionality."""
 
@@ -19,21 +24,23 @@ class TestGraphSummary(BaseTest):
         """
         test the section formats
         """
-        header="Test"
-        level=1
+        header = "Test"
+        level = 1
         test_cases = [
             ("latex", "\\section{Test}"),
             ("mediawiki", "= Test ="),
             ("github", "# Test"),
         ]
 
-        for fmt, expected_header, in test_cases:
+        for (
+            fmt,
+            expected_header,
+        ) in test_cases:
             with self.subTest(fmt=fmt):
                 # Test section header formatting
                 gs = GraphSummary(None, fmt=fmt)
-                header_markup=gs.format_section_header(header, level)
+                header_markup = gs.format_section_header(header, level)
                 self.assertEqual(header_markup, expected_header)
-
 
     def test_graph_summary(self):
         """Test the graph summary."""
@@ -43,7 +50,10 @@ class TestGraphSummary(BaseTest):
             ("mediawiki", "= Test ="),
             ("github", "# Test"),
         ]
-        for fmt, expected_header, in test_cases:
+        for (
+            fmt,
+            expected_header,
+        ) in test_cases:
             with self.subTest(fmt=fmt):
                 # Test section header formatting
                 gs = GraphSummary(graph, fmt=fmt)

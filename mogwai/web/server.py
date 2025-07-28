@@ -23,7 +23,7 @@ import mogwai.core.traversal as Trav
 import os
 import tempfile
 from starlette.responses import RedirectResponse
-from ngwidgets.persistent_log import Log
+from basemkit.persistent_log import Log
 
 class QueryResult:
     def __init__(self,traversal,result):

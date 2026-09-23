@@ -35,7 +35,7 @@ def get_subgraph(file: str) -> MogwaiGraph:
         raise ValueError("Wrong Format, cant get a subgraph")
 
 
-IGNORED_DIRECTORIES = [".git", "__pycache__"]
+IGNORED_DIRECTORIES = [".git", "__pycache__", ".venv", ".tox"]
 FILETYPES_TO_UNFOLD = (".pdf", ".pptx", ".xlsx")
 
 
